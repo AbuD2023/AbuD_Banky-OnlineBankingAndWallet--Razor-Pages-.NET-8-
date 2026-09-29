@@ -1,0 +1,130 @@
+@model List<Banky.Web.Models.TransactionModel>
+@{
+    ViewData["Title"] = "سجل العمليات والتحويلات العامة";
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-money-bill-transfer text-primary me-2"></i> سجل العمليات والحركات المالية</h5>
+            <p class="text-muted small mb-0">متابعة كافة التحويلات بين المشتركين، المدفوعات لنقاط البيع، وعمليات التغذية والإيداع</p>
+        </div>
+        <div class="badge bg-success fs-6 px-3 py-2 rounded-pill">
+            <i class="fa-solid fa-receipt me-1"></i> @Model.Count حركة مالية
+        </div>
+    </div>
+
+    <!-- شريط الفلاتر والبحث -->
+    <form method="get" class="row g-2 mb-4 bg-body-tertiary p-3 rounded-3">
+        <div class="col-md-3">
+            <label class="form-label small fw-bold">العملة</label>
+            <select name="currencyCode" class="form-select form-select-sm">
+                <option value="">جميع العملات</option>
+                <option value="YER" selected="@(ViewBag.CurrencyCode == "YER")">ريال يمني (YER)</option>
+                <option value="SAR" selected="@(ViewBag.CurrencyCode == "SAR")">ريال سعودي (SAR)</option>
+                <option value="USD" selected="@(ViewBag.CurrencyCode == "USD")">دولار أمريكي (USD)</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-bold">نوع العملية</label>
+            <select name="type" class="form-select form-select-sm">
+                <option value="">جميع العمليات</option>
+                <option value="TransferByPhone" selected="@(ViewBag.Type == "TransferByPhone")">تحويل لمشترك برقم الهاتف</option>
+                <option value="PosPayment" selected="@(ViewBag.Type == "PosPayment")">شراء / دفع لنقطة بيع</option>
+                <option value="Deposit" selected="@(ViewBag.Type == "Deposit")">إيداع وتغذية رصيد</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">من تاريخ</label>
+            <input type="date" name="fromDate" value="@ViewBag.FromDate" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small fw-bold">إلى تاريخ</label>
+            <input type="date" name="toDate" value="@ViewBag.ToDate" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-filter me-1"></i> تطبيق الفلتر</button>
+        </div>
+    </form>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-receipt fs-1 mb-2"></i>
+            <p class="mb-0">لا توجد عمليات تطابق معايير البحث المحددة</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>رقم العملية</th>
+                        <th>النوع</th>
+                        <th>المبلغ</th>
+                        <th>المرسل</th>
+                        <th>المستلم / نقطة البيع</th>
+                        <th>البيان والملاحظات</th>
+                        <th>التاريخ والتوقيت</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trx in Model)
+                    {
+                        <tr>
+                            <td class="font-monospace small fw-bold">@trx.TransactionNumber</td>
+                            <td>
+                                @switch (trx.Type)
+                                {
+                                    case "TransferByPhone":
+                                        <span class="badge bg-primary-subtle text-primary"><i class="fa-solid fa-phone me-1"></i> تحويل لمشترك</span>
+                                        break;
+                                    case "PosPayment":
+                                        <span class="badge bg-info-subtle text-info"><i class="fa-solid fa-store me-1"></i> دفع لنقطة بيع</span>
+                                        break;
+                                    case "Deposit":
+                                        <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-arrow-down me-1"></i> إيداع رصيد</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary">@trx.TypeNameAr</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="fw-bold text-success">
+                                @trx.Amount.ToString("N2") <span class="small">@trx.CurrencySymbol</span>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@(trx.SenderDisplayName ?? "إيداع مباشر")</div>
+                                @if (!string.IsNullOrEmpty(trx.SenderDisplayPhone))
+                                {
+                                    <small class="text-muted font-monospace" dir="ltr">@trx.SenderDisplayPhone</small>
+                                }
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@trx.ReceiverDisplayName</div>
+                                @if (!string.IsNullOrEmpty(trx.PosName))
+                                {
+                                    <small class="text-info"><i class="fa-solid fa-shop me-1"></i> @trx.PosName</small>
+                                }
+                            </td>
+                            <td class="small text-muted">@trx.Note</td>
+                            <td class="small font-monospace">@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                @if (trx.Status == "Completed")
+                                {
+                                    <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> ناجحة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">@trx.StatusNameAr</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

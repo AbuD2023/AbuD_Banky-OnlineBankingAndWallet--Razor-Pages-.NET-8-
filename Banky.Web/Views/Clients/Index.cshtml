@@ -1,0 +1,233 @@
+@model List<Banky.Web.Models.ClientProfileModel>
+@{
+    ViewData["Title"] = "إدارة العملاء والمستخدمين";
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-users text-primary me-2"></i> دليل وحسابات العملاء</h5>
+            <p class="text-muted small mb-0">إدارة حسابات المستخدمين، مراجعة الأرصدة، إعادة تعيين كلمات المرور، والتحكم بالحظر</p>
+        </div>
+        <div class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+            <i class="fa-solid fa-user-check me-1"></i> @Model.Count عميل مسجل
+        </div>
+    </div>
+
+    <!-- شريط البحث والفلترة -->
+    <form method="get" class="row g-2 mb-4">
+        <div class="col-md-6 col-lg-5">
+            <div class="input-group">
+                <span class="input-group-text bg-body-tertiary"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control" placeholder="البحث بالاسم، رقم الهاتف، أو البريد..." />
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <select name="kycStatus" class="form-select">
+                <option value="All">جميع حالات التوثيق</option>
+                <option value="Approved" selected="@(ViewBag.KycStatus == "Approved")">موثق (Approved)</option>
+                <option value="PendingApproval" selected="@(ViewBag.KycStatus == "PendingApproval")">قيد المراجعة (Pending)</option>
+                <option value="Rejected" selected="@(ViewBag.KycStatus == "Rejected")">مرفوض (Rejected)</option>
+                <option value="NotSubmitted" selected="@(ViewBag.KycStatus == "NotSubmitted")">غير مرفوع (Not Submitted)</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-filter me-1"></i> تصفية</button>
+        </div>
+    </form>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-users-slash fs-1 mb-2"></i>
+            <p class="mb-0">لم يتم العثور على أي عملاء مطابقين للبحث</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>الاسم الرباعي</th>
+                        <th>الهاتف</th>
+                        <th>البريد</th>
+                        <th>حالة التوثيق KYC</th>
+                        <th>حالة الحساب</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var client in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">
+                                <a asp-action="Details" asp-route-id="@client.Id" class="text-decoration-none">
+                                    @client.FullName
+                                </a>
+                                @if (client.HideFullName)
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary small ms-1" title="ميزة إخفاء الاسم مفعلة لدى العميل">
+                                        <i class="fa-solid fa-eye-slash"></i>
+                                    </span>
+                                }
+                            </td>
+                            <td dir="ltr" class="text-end">@client.Phone</td>
+                            <td>@client.Email</td>
+                            <td>
+                                @switch (client.KycStatus)
+                                {
+                                    case "Approved":
+                                        <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> موثق ومقبول</span>
+                                        break;
+                                    case "PendingApproval":
+                                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> قيد المراجعة</span>
+                                        break;
+                                    case "Rejected":
+                                        <span class="badge bg-danger"><i class="fa-solid fa-xmark me-1"></i> مرفوض</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary"><i class="fa-solid fa-circle-question me-1"></i> غير مرفوع</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (client.IsBlocked)
+                                {
+                                    <span class="badge bg-danger"><i class="fa-solid fa-ban me-1"></i> محظور</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-circle-check me-1"></i> نشط</span>
+                                }
+                            </td>
+                            <td class="small text-muted">@client.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Details" asp-route-id="@client.Id" class="btn btn-outline-primary" title="عرض التفاصيل">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <!-- زر إعادة تعيين كلمة المرور -->
+                                    <button type="button" class="btn btn-outline-warning" title="إعادة تعيين كلمة المرور"
+                                            onclick="openResetPasswordModal('@client.Id', '@client.FullName')">
+                                        <i class="fa-solid fa-key"></i>
+                                    </button>
+                                    <!-- زر الحظر / فك الحظر -->
+                                    <button type="button" class="btn @(client.IsBlocked ? "btn-outline-success" : "btn-outline-danger")"
+                                            title="@(client.IsBlocked ? "إلغاء الحظر" : "حظر الحساب")"
+                                            onclick="openBlockModal('@client.Id', '@client.FullName', @client.IsBlocked.ToString().ToLower())">
+                                        <i class="fa-solid @(client.IsBlocked ? "fa-unlock" : "fa-ban")"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal إعادة تعيين كلمة المرور وتوليد كلمة مرور مؤقتة -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="ResetPassword" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="resetClientGuid" name="id" value="" />
+                <input type="hidden" name="returnUrl" value="/Clients/Index" />
+
+                <div class="modal-header bg-warning text-dark rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-key me-2"></i> إعادة تعيين كلمة المرور</h5>
+                    <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">سيتم توليد كلمة مرور مؤقتة للعميل: <strong id="resetClientName" class="text-primary"></strong></p>
+                    <div class="alert alert-info small mb-3">
+                        <i class="fa-solid fa-info-circle me-1"></i>
+                        سيتم إجبار العميل على تغيير كلمة المرور وإنشاء كلمة مرور جديدة فور تسجيل دخوله بالتطبيق.
+                    </div>
+                    <div class="mb-3">
+                        <label for="tempPasswordInput" class="form-label fw-bold small">كلمة المرور المؤقتة المقترحة</label>
+                        <input type="text" id="tempPasswordInput" name="tempPassword" class="form-control font-monospace" value="123456" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning rounded-3 fw-bold">إعادة تعيين وإجبار التغيير</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal حظر أو فك حظر الحساب -->
+<div class="modal fade" id="blockClientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="ToggleBlock" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="blockClientId" name="id" value="" />
+                <input type="hidden" id="blockStatusValue" name="isBlocked" value="" />
+                <input type="hidden" name="returnUrl" value="/Clients/Index" />
+
+                <div class="modal-header rounded-top-4" id="blockModalHeader">
+                    <h5 class="modal-title fw-bold" id="blockModalTitle">حظر الحساب</h5>
+                    <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3" id="blockModalPrompt"></p>
+                    <div class="mb-3" id="blockReasonGroup">
+                        <label for="blockedMessage" class="form-label fw-bold small">سبب الحظر (سيظهر للعميل عند محاولة تسجيل الدخول)</label>
+                        <textarea id="blockedMessage" name="blockedMessage" class="form-control" rows="3" placeholder="مخالفة شروط الاستخدام والعمليات المالية المشبوهة..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn rounded-3 fw-bold" id="blockModalSubmitBtn">تأكيد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openResetPasswordModal(id, name) {
+            document.getElementById('resetClientGuid').value = id;
+            document.getElementById('resetClientName').textContent = name;
+            new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+        }
+
+        function openBlockModal(id, name, isCurrentlyBlocked) {
+            document.getElementById('blockClientId').value = id;
+            const newBlockState = !isCurrentlyBlocked;
+            document.getElementById('blockStatusValue').value = newBlockState;
+
+            const header = document.getElementById('blockModalHeader');
+            const title = document.getElementById('blockModalTitle');
+            const prompt = document.getElementById('blockModalPrompt');
+            const submitBtn = document.getElementById('blockModalSubmitBtn');
+            const reasonGroup = document.getElementById('blockReasonGroup');
+
+            if (newBlockState) {
+                header.className = 'modal-header bg-danger text-white rounded-top-4';
+                title.textContent = 'حظر حساب العميل';
+                prompt.innerHTML = 'أنت على وشك حظر حساب العميل: <strong class="text-danger">' + name + '</strong> ومنعه من استخدام التطبيق.';
+                submitBtn.className = 'btn btn-danger rounded-3 fw-bold';
+                submitBtn.textContent = 'تأكيد الحظر';
+                reasonGroup.style.display = 'block';
+            } else {
+                header.className = 'modal-header bg-success text-white rounded-top-4';
+                title.textContent = 'إلغاء حظر العميل';
+                prompt.innerHTML = 'هل تريد فك الحظر عن حساب العميل: <strong class="text-success">' + name + '</strong> وإعادة تفعيل خدماته؟';
+                submitBtn.className = 'btn btn-success rounded-3 fw-bold';
+                submitBtn.textContent = 'إلغاء الحظر وتفعيل الحساب';
+                reasonGroup.style.display = 'none';
+            }
+
+            new bootstrap.Modal(document.getElementById('blockClientModal')).show();
+        }
+    </script>
+}

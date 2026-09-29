@@ -1,0 +1,161 @@
+@model List<Banky.Web.Models.RecentKycRequestModel>
+@{
+    ViewData["Title"] = "توثيق ومراجعة الهويات الشخصية (KYC)";
+    var apiBaseUrl = "http://localhost:5021"; // رابط استعراض ملفات الـ API
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-id-card text-primary me-2"></i> طلبات توثيق الهويات الشخصية</h5>
+            <p class="text-muted small mb-0">قم بمعاينة صورتي البطاقة (الوجهين) والموافقة على الحساب أو رفضه مع ذكر السبب</p>
+        </div>
+        <div class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">
+            <i class="fa-solid fa-clock me-1"></i> @Model.Count طلبات معلقة
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5">
+            <div class="bg-success-subtle text-success rounded-circle d-inline-flex p-4 mb-3">
+                <i class="fa-solid fa-check-double fs-1"></i>
+            </div>
+            <h5 class="fw-bold">تمت مراجعة كافة الطلبات!</h5>
+            <p class="text-muted">لا توجد أي طلبات توثيق هوية معلقة بالوقت الحالي.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>الاسم الرباعي</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>رقم الهاتف</th>
+                        <th>تاريخ الرفع</th>
+                        <th>صور الهوية (الوجهين)</th>
+                        <th>القرار والإجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var frontImg = !string.IsNullOrEmpty(item.KycIdFront) ? (item.KycIdFront.StartsWith("http") ? item.KycIdFront : $"{apiBaseUrl}{item.KycIdFront}") : "/images/id-front-placeholder.png";
+                        var backImg = !string.IsNullOrEmpty(item.KycIdBack) ? (item.KycIdBack.StartsWith("http") ? item.KycIdBack : $"{apiBaseUrl}{item.KycIdBack}") : "/images/id-back-placeholder.png";
+
+                        <tr>
+                            <td class="fw-bold">@item.FullName</td>
+                            <td>@item.Email</td>
+                            <td dir="ltr" class="text-end">@item.Phone</td>
+                            <td class="small text-muted">@item.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                        onclick="openKycModal('@item.ClientId', '@item.FullName', '@frontImg', '@backImg')">
+                                    <i class="fa-solid fa-images me-1"></i> معاينة البطاقة
+                                </button>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <!-- زر القبول المباشر -->
+                                    <form asp-action="Review" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="clientId" value="@item.ClientId" />
+                                        <input type="hidden" name="isApproved" value="true" />
+                                        <button type="submit" class="btn btn-sm btn-success px-3" onclick="return confirm('هل أنت متأكد من قبول وتوثيق حساب @item.FullName؟');">
+                                            <i class="fa-solid fa-check me-1"></i> قبول
+                                        </button>
+                                    </form>
+
+                                    <!-- زر الرفض مع المودال -->
+                                    <button type="button" class="btn btn-sm btn-outline-danger px-3" 
+                                            onclick="openRejectModal('@item.ClientId', '@item.FullName')">
+                                        <i class="fa-solid fa-xmark me-1"></i> رفض
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal معاينة صور الهوية -->
+<div class="modal fade" id="kycPreviewModal" tabindex="-1" aria-labelledby="kycPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-body border-bottom">
+                <h5 class="modal-title fw-bold" id="kycModalTitle">معاينة بطاقة الهوية</h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6 text-center">
+                        <h6 class="fw-bold mb-2 text-primary">الوجه الأمامي للبطاقة</h6>
+                        <div class="p-2 border rounded-3 bg-body-tertiary">
+                            <img id="kycFrontImage" src="" alt="الوجه الأمامي" class="img-fluid rounded shadow-sm" style="max-height: 280px; object-fit: contain;" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <h6 class="fw-bold mb-2 text-primary">الوجه الخلفي للبطاقة</h6>
+                        <div class="p-2 border rounded-3 bg-body-tertiary">
+                            <img id="kycBackImage" src="" alt="الوجه الخلفي" class="img-fluid rounded shadow-sm" style="max-height: 280px; object-fit: contain;" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-body border-top">
+                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal رفض التوثيق مع ذكر السبب -->
+<div class="modal fade" id="rejectKycModal" tabindex="-1" aria-labelledby="rejectKycModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="Review" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="rejectClientId" name="clientId" value="" />
+                <input type="hidden" name="isApproved" value="false" />
+
+                <div class="modal-header bg-danger text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold">رفض طلب التوثيق</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">أنت على وشك رفض توثيق حساب: <strong id="rejectClientName" class="text-danger"></strong></p>
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label fw-bold small">سبب الرفض (سيظهر للمستخدم في التطبيق)</label>
+                        <textarea id="rejectionReason" name="rejectionReason" class="form-control" rows="3" placeholder="مثال: الصورة غير واضحة، أو البيانات غير مطابقة لبطاقة الهوية"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger rounded-3 fw-bold">تأكيد الرفض</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openKycModal(clientId, fullName, frontUrl, backUrl) {
+            document.getElementById('kycModalTitle').textContent = 'معاينة بطاقة الهوية لـ ' + fullName;
+            document.getElementById('kycFrontImage').src = frontUrl;
+            document.getElementById('kycBackImage').src = backUrl;
+            new bootstrap.Modal(document.getElementById('kycPreviewModal')).show();
+        }
+
+        function openRejectModal(clientId, fullName) {
+            document.getElementById('rejectClientId').value = clientId;
+            document.getElementById('rejectClientName').textContent = fullName;
+            new bootstrap.Modal(document.getElementById('rejectKycModal')).show();
+        }
+    </script>
+}

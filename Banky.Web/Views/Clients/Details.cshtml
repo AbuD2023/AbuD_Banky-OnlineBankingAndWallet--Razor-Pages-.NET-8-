@@ -1,0 +1,328 @@
+@model Banky.Web.Models.ClientDetailsModel
+@{
+    ViewData["Title"] = $"تفاصيل العميل: {Model.Client.FullName}";
+    var apiBaseUrl = "http://localhost:5021";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa-solid fa-arrow-right me-1"></i> العودة لقائمة العملاء</a>
+        <h4 class="fw-bold mb-0">@Model.Client.FullName</h4>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-warning" onclick="openResetPasswordModal('@Model.Client.Id', '@Model.Client.FullName')">
+            <i class="fa-solid fa-key me-1"></i> إعادة تعيين كلمة المرور
+        </button>
+        <button type="button" class="btn @(Model.Client.IsBlocked ? "btn-success" : "btn-danger")" onclick="openBlockModal('@Model.Client.Id', '@Model.Client.FullName', @Model.Client.IsBlocked.ToString().ToLower())">
+            <i class="fa-solid @(Model.Client.IsBlocked ? "fa-unlock" : "fa-ban") me-1"></i> @(Model.Client.IsBlocked ? "فك الحظر" : "حظر الحساب")
+        </button>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- بطاقة البيانات الأساسية والتوثيق والخصوصية -->
+    <div class="col-lg-4">
+        <div class="card bg-body rounded-4 p-4 shadow-sm mb-4">
+            <div class="text-center mb-3">
+                <div class="bg-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-2" style="width: 80px; height: 80px;">
+                    <i class="fa-solid fa-user fs-1"></i>
+                </div>
+                <h5 class="fw-bold mb-1">@Model.Client.FullName</h5>
+                <p class="text-muted small mb-2" dir="ltr">@Model.Client.Phone</p>
+                
+                @switch (Model.Client.KycStatus)
+                {
+                    case "Approved":
+                        <span class="badge bg-success px-3 py-2 rounded-pill"><i class="fa-solid fa-check-circle me-1"></i> حساب موثق</span>
+                        break;
+                    case "PendingApproval":
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="fa-solid fa-clock me-1"></i> قيد المراجعة</span>
+                        break;
+                    case "Rejected":
+                        <span class="badge bg-danger px-3 py-2 rounded-pill"><i class="fa-solid fa-ban me-1"></i> التوثيق مرفوض</span>
+                        break;
+                    default:
+                        <span class="badge bg-secondary px-3 py-2 rounded-pill"><i class="fa-solid fa-circle-question me-1"></i> غير مرفوع</span>
+                        break;
+                }
+            </div>
+
+            <hr />
+
+            <div class="small">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">البريد الإلكتروني:</span>
+                    <span class="fw-bold">@Model.Client.Email</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">تاريخ التسجيل:</span>
+                    <span class="fw-bold">@Model.Client.CreatedAt.ToString("yyyy-MM-dd")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">تسجيل الدخول بالبصمة:</span>
+                    <span class="badge @(Model.Client.IsBiometricEnabled ? "bg-success" : "bg-secondary")">
+                        @(Model.Client.IsBiometricEnabled ? "مفعل" : "معطل")
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">إخفاء الاسم بالرموز:</span>
+                    <span class="badge @(Model.Client.HideFullName ? "bg-info" : "bg-secondary")">
+                        @(Model.Client.HideFullName ? "مفعل" : "معطل")
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">إخفاء الهاتف على POS:</span>
+                    <span class="badge @(Model.Client.HidePhoneOnPos ? "bg-info" : "bg-secondary")">
+                        @(Model.Client.HidePhoneOnPos ? "مفعل" : "معطل")
+                    </span>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Client.PosAliasPhone))
+                {
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">الرقم البديل للـ POS:</span>
+                        <span class="fw-bold font-monospace text-primary">@Model.Client.PosAliasPhone</span>
+                    </div>
+                }
+                @if (Model.Client.MustChangePassword)
+                {
+                    <div class="alert alert-warning small p-2 mt-2 mb-0">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> بانتظار تغيير كلمة المرور عند أول دخول
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- معاينة صور البطاقة -->
+        @if (!string.IsNullOrEmpty(Model.Client.KycIdFront) || !string.IsNullOrEmpty(Model.Client.KycIdBack))
+        {
+            <div class="card bg-body rounded-4 p-4 shadow-sm">
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-id-card text-primary me-2"></i> وثائق الهوية المرفوعة</h6>
+                <div class="row g-2">
+                    @if (!string.IsNullOrEmpty(Model.Client.KycIdFront))
+                    {
+                        var frontUrl = Model.Client.KycIdFront.StartsWith("http") ? Model.Client.KycIdFront : $"{apiBaseUrl}{Model.Client.KycIdFront}";
+                        <div class="col-6 text-center">
+                            <span class="small text-muted d-block mb-1">الوجه الأمامي</span>
+                            <a href="@frontUrl" target="_blank">
+                                <img src="@frontUrl" class="img-thumbnail" style="height: 100px; object-fit: cover;" />
+                            </a>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Client.KycIdBack))
+                    {
+                        var backUrl = Model.Client.KycIdBack.StartsWith("http") ? Model.Client.KycIdBack : $"{apiBaseUrl}{Model.Client.KycIdBack}";
+                        <div class="col-6 text-center">
+                            <span class="small text-muted d-block mb-1">الوجه الخلفي</span>
+                            <a href="@backUrl" target="_blank">
+                                <img src="@backUrl" class="img-thumbnail" style="height: 100px; object-fit: cover;" />
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- المحافظ المالية ونقاط البيع وسجل العمليات -->
+    <div class="col-lg-8">
+        <!-- المحافظ المالية -->
+        <div class="card bg-body rounded-4 p-4 shadow-sm mb-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-wallet text-primary me-2"></i> المحافظ المالية للعميل</h5>
+            @if (Model.Wallets == null || !Model.Wallets.Any())
+            {
+                <div class="text-muted small">لا توجد محافظ منشأة بعد.</div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var wallet in Model.Wallets)
+                    {
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-body-tertiary">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-primary">@wallet.CurrencyNameAr (@wallet.CurrencyCode)</span>
+                                    <span class="small text-muted font-monospace">@wallet.AccountNumber</span>
+                                </div>
+                                <h4 class="fw-bold text-success mb-0">@wallet.Balance.ToString("N2") <span class="fs-6">@wallet.CurrencySymbol</span></h4>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- نقاط البيع المنشأة بواسطة العميل -->
+        @if (Model.PosPoints != null && Model.PosPoints.Any())
+        {
+            <div class="card bg-body rounded-4 p-4 shadow-sm mb-4">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-store text-info me-2"></i> نقاط البيع التابعة للعميل</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>اسم المتجر</th>
+                                <th>كود الـ POS</th>
+                                <th>النشاط</th>
+                                <th>العنوان</th>
+                                <th>الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pos in Model.PosPoints)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@pos.Name</td>
+                                    <td class="font-monospace text-primary">@pos.PosCode</td>
+                                    <td>@pos.Category</td>
+                                    <td>@pos.Address</td>
+                                    <td><span class="badge @(pos.IsActive ? "bg-success" : "bg-secondary")">@(pos.IsActive ? "نشط" : "معطل")</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- سجل الحركات الأخيرة -->
+        <div class="card bg-body rounded-4 p-4 shadow-sm">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> آخر الحركات المالية للعميل</h5>
+            @if (Model.RecentTransactions == null || !Model.RecentTransactions.Any())
+            {
+                <div class="text-center py-4 text-muted">لا توجد حركات مسجلة لهذا العميل.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم العملية</th>
+                                <th>النوع</th>
+                                <th>المبلغ</th>
+                                <th>البيان</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var trx in Model.RecentTransactions)
+                            {
+                                <tr>
+                                    <td class="small font-monospace">@trx.TransactionNumber</td>
+                                    <td><span class="badge bg-secondary">@trx.TypeNameAr</span></td>
+                                    <td class="fw-bold @(trx.IsIncoming ? "text-success" : "text-danger")">
+                                        @(trx.IsIncoming ? "+" : "-")@trx.Amount.ToString("N2") @trx.CurrencyCode
+                                    </td>
+                                    <td class="small">@trx.Note</td>
+                                    <td class="small text-muted">@trx.CreatedAt.ToString("MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- المودالات المساعدة -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="ResetPassword" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="resetClientGuid" name="id" value="" />
+                <input type="hidden" name="returnUrl" value="/Clients/Details/@Model.Client.Id" />
+
+                <div class="modal-header bg-warning text-dark rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-key me-2"></i> إعادة تعيين كلمة المرور</h5>
+                    <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">سيتم توليد كلمة مرور مؤقتة للعميل: <strong id="resetClientName" class="text-primary"></strong></p>
+                    <div class="alert alert-info small mb-3">
+                        <i class="fa-solid fa-info-circle me-1"></i>
+                        سيتم إجبار العميل على تغيير كلمة المرور فور تسجيل دخوله بالتطبيق.
+                    </div>
+                    <div class="mb-3">
+                        <label for="tempPasswordInput" class="form-label fw-bold small">كلمة المرور المؤقتة المقترحة</label>
+                        <input type="text" id="tempPasswordInput" name="tempPassword" class="form-control font-monospace" value="123456" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning rounded-3 fw-bold">إعادة تعيين وإجبار التغيير</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="blockClientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="ToggleBlock" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="blockClientId" name="id" value="" />
+                <input type="hidden" id="blockStatusValue" name="isBlocked" value="" />
+                <input type="hidden" name="returnUrl" value="/Clients/Details/@Model.Client.Id" />
+
+                <div class="modal-header rounded-top-4" id="blockModalHeader">
+                    <h5 class="modal-title fw-bold" id="blockModalTitle">حظر الحساب</h5>
+                    <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3" id="blockModalPrompt"></p>
+                    <div class="mb-3" id="blockReasonGroup">
+                        <label for="blockedMessage" class="form-label fw-bold small">سبب الحظر</label>
+                        <textarea id="blockedMessage" name="blockedMessage" class="form-control" rows="3" placeholder="مخالفة شروط الاستخدام..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn rounded-3 fw-bold" id="blockModalSubmitBtn">تأكيد</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openResetPasswordModal(id, name) {
+            document.getElementById('resetClientGuid').value = id;
+            document.getElementById('resetClientName').textContent = name;
+            new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+        }
+
+        function openBlockModal(id, name, isCurrentlyBlocked) {
+            document.getElementById('blockClientId').value = id;
+            const newBlockState = !isCurrentlyBlocked;
+            document.getElementById('blockStatusValue').value = newBlockState;
+
+            const header = document.getElementById('blockModalHeader');
+            const title = document.getElementById('blockModalTitle');
+            const prompt = document.getElementById('blockModalPrompt');
+            const submitBtn = document.getElementById('blockModalSubmitBtn');
+            const reasonGroup = document.getElementById('blockReasonGroup');
+
+            if (newBlockState) {
+                header.className = 'modal-header bg-danger text-white rounded-top-4';
+                title.textContent = 'حظر حساب العميل';
+                prompt.innerHTML = 'أنت على وشك حظر حساب العميل: <strong class="text-danger">' + name + '</strong> ومنعه من استخدام التطبيق.';
+                submitBtn.className = 'btn btn-danger rounded-3 fw-bold';
+                submitBtn.textContent = 'تأكيد الحظر';
+                reasonGroup.style.display = 'block';
+            } else {
+                header.className = 'modal-header bg-success text-white rounded-top-4';
+                title.textContent = 'إلغاء حظر العميل';
+                prompt.innerHTML = 'هل تريد فك الحظر عن حساب العميل: <strong class="text-success">' + name + '</strong> وإعادة تفعيل خدماته؟';
+                submitBtn.className = 'btn btn-success rounded-3 fw-bold';
+                submitBtn.textContent = 'إلغاء الحظر وتفعيل الحساب';
+                reasonGroup.style.display = 'none';
+            }
+
+            new bootstrap.Modal(document.getElementById('blockClientModal')).show();
+        }
+    </script>
+}

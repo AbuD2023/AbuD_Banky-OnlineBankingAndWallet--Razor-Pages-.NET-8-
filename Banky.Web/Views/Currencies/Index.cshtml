@@ -1,0 +1,187 @@
+@model List<Banky.Web.Models.CurrencyModel>
+@{
+    ViewData["Title"] = "إدارة العملات المعتمدة";
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-coins text-primary me-2"></i> العملات المعتمدة في النظام</h5>
+            <p class="text-muted small mb-0">إضافة وتفعيل عملات جديدة (مثل ريال يمني، ريال سعودي، دولار، يورو) ليتمكن العملاء من فتح محافظ بها</p>
+        </div>
+        <button type="button" class="btn btn-primary rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addCurrencyModal">
+            <i class="fa-solid fa-plus me-1"></i> إضافة عملة جديدة
+        </button>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-coins fs-1 mb-2"></i>
+            <p class="mb-0">لا توجد عملات مسجلة في النظام</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>رمز العملة</th>
+                        <th>الاسم بالعربية</th>
+                        <th>الاسم بالإنجليزية</th>
+                        <th>رمز العرض</th>
+                        <th>سعر الصرف المرجعي</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var curr in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold font-monospace text-primary">@curr.Code</td>
+                            <td class="fw-bold">@curr.NameAr</td>
+                            <td class="text-muted">@curr.NameEn</td>
+                            <td class="fs-5 fw-bold">@curr.Symbol</td>
+                            <td class="font-monospace">@curr.ExchangeRate.ToString("N2")</td>
+                            <td>
+                                @if (curr.IsActive)
+                                {
+                                    <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> مفعلة</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger"><i class="fa-solid fa-pause me-1"></i> معطلة</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-secondary" title="تعديل"
+                                            onclick="openEditCurrencyModal(@curr.Id, '@curr.Code', '@curr.NameAr', '@curr.NameEn', '@curr.Symbol', @curr.IsActive.ToString().ToLower(), @curr.ExchangeRate)">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <form asp-action="ToggleStatus" asp-route-id="@curr.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn @(curr.IsActive ? "btn-outline-danger" : "btn-outline-success")" title="@(curr.IsActive ? "تعطيل" : "تفعيل")">
+                                            <i class="fa-solid @(curr.IsActive ? "fa-ban" : "fa-check")"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal إضافة عملة جديدة -->
+<div class="modal fade" id="addCurrencyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-primary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle me-2"></i> إضافة عملة جديدة</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">رمز العملة (ISO Code)</label>
+                        <input type="text" name="Code" class="form-control text-uppercase font-monospace" placeholder="مثال: EUR, KWD, AED" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">اسم العملة باللغة العربية</label>
+                        <input type="text" name="NameAr" class="form-control" placeholder="مثال: يورو، دينار كويتي" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">اسم العملة بالإنجليزية</label>
+                        <input type="text" name="NameEn" class="form-control" placeholder="مثال: Euro, Kuwaiti Dinar" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">رمز العرض (Symbol)</label>
+                            <input type="text" name="Symbol" class="form-control" placeholder="مثال: €, د.ك" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">سعر الصرف المرجعي</label>
+                            <input type="number" step="0.0001" name="ExchangeRate" class="form-control" value="1.0000" required />
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="IsActive" value="true" checked id="isActiveSwitch">
+                        <label class="form-check-label small fw-bold" for="isActiveSwitch">تفعيل العملة وإتاحتها للعملاء فوراً</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-3 fw-bold">حفظ وإضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تعديل العملة -->
+<div class="modal fade" id="editCurrencyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form id="editCurrencyForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-secondary text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen me-2"></i> تعديل بيانات العملة</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">رمز العملة</label>
+                        <input type="text" id="editCurrencyCode" class="form-control font-monospace" readonly disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">اسم العملة باللغة العربية</label>
+                        <input type="text" id="editNameAr" name="NameAr" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">اسم العملة بالإنجليزية</label>
+                        <input type="text" id="editNameEn" name="NameEn" class="form-control" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">رمز العرض</label>
+                            <input type="text" id="editSymbol" name="Symbol" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">سعر الصرف</label>
+                            <input type="number" step="0.0001" id="editExchangeRate" name="ExchangeRate" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="editIsActive">
+                        <label class="form-check-label small fw-bold" for="editIsActive">مفعلة</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-3 fw-bold">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openEditCurrencyModal(id, code, nameAr, nameEn, symbol, isActive, exchangeRate) {
+            document.getElementById('editCurrencyForm').action = '/Currencies/Edit/' + id;
+            document.getElementById('editCurrencyCode').value = code;
+            document.getElementById('editNameAr').value = nameAr;
+            document.getElementById('editNameEn').value = nameEn;
+            document.getElementById('editSymbol').value = symbol;
+            document.getElementById('editExchangeRate').value = exchangeRate;
+            document.getElementById('editIsActive').checked = isActive;
+            new bootstrap.Modal(document.getElementById('editCurrencyModal')).show();
+        }
+    </script>
+}

@@ -1,0 +1,204 @@
+@model Banky.Web.Models.AdminDashboardStatsModel
+@{
+    ViewData["Title"] = "الرئيسية والإحصاءات العامة";
+}
+
+<!-- صف البطاقات الإحصائية الرئيسية -->
+<div class="row g-3 mb-4">
+    <!-- إجمالي العملاء -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card stat-card bg-body p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">إجمالي العملاء</div>
+                    <h3 class="fw-bold my-1">@Model.TotalClientsCount</h3>
+                    <div class="small text-success"><i class="fa-solid fa-users me-1"></i> حسابات مسجلة</div>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- طلبات التوثيق المعلقة KYC -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card stat-card bg-body p-3 h-100 border-warning-subtle">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">طلبات التوثيق المعلقة</div>
+                    <h3 class="fw-bold my-1 text-warning">@Model.PendingKycCount</h3>
+                    <a asp-controller="Kyc" asp-action="Index" class="small text-decoration-none">
+                        مراجعة الطلبات <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+                </div>
+                <div class="stat-icon bg-warning-subtle text-warning">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إجمالي نقاط البيع -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card stat-card bg-body p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">نقاط البيع (POS)</div>
+                    <h3 class="fw-bold my-1">@Model.TotalPosCount</h3>
+                    <div class="small text-info"><i class="fa-solid fa-store me-1"></i> متجر ونقطة دفع</div>
+                </div>
+                <div class="stat-icon bg-info-subtle text-info">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إجمالي العمليات المنفذة -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card stat-card bg-body p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">إجمالي العمليات</div>
+                    <h3 class="fw-bold my-1 text-success">@Model.TotalTransactionsCount</h3>
+                    <div class="small text-muted">حوالات ودفع وإيداعات</div>
+                </div>
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- صف إحصائيات المبالغ بالعملات المختلفة -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white p-3 rounded-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-white-50">إجمالي التداولات (ريال يمني)</small>
+                    <h4 class="fw-bold mb-0 mt-1">@Model.TotalTransferredAmountYer.ToString("N2") <span class="fs-6">ر.ي</span></h4>
+                </div>
+                <i class="fa-solid fa-money-bill-wave fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white p-3 rounded-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-white-50">إجمالي التداولات (ريال سعودي)</small>
+                    <h4 class="fw-bold mb-0 mt-1">@Model.TotalTransferredAmountSar.ToString("N2") <span class="fs-6">ر.س</span></h4>
+                </div>
+                <i class="fa-solid fa-coins fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark text-white p-3 rounded-4 shadow-sm border">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="text-white-50">إجمالي التداولات (دولار أمريكي)</small>
+                    <h4 class="fw-bold mb-0 mt-1">@Model.TotalTransferredAmountUsd.ToString("N2") <span class="fs-6">$</span></h4>
+                </div>
+                <i class="fa-solid fa-dollar-sign fs-1 opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- أحدث طلبات التوثيق المعلقة KYC -->
+    <div class="col-lg-6">
+        <div class="card bg-body rounded-4 p-4 shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-id-card text-warning me-2"></i> طلبات توثيق الهوية بانتظار المراجعة</h6>
+                <a asp-controller="Kyc" asp-action="Index" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+            </div>
+
+            @if (Model.RecentKycRequests == null || !Model.RecentKycRequests.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-circle-check fs-1 text-success mb-2"></i>
+                    <p class="mb-0">لا توجد طلبات توثيق معلقة حالياً</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>اسم العميل</th>
+                                <th>الهاتف</th>
+                                <th>تاريخ الرفع</th>
+                                <th>الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var kyc in Model.RecentKycRequests)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@kyc.FullName</td>
+                                    <td dir="ltr" class="text-end">@kyc.Phone</td>
+                                    <td class="small text-muted">@kyc.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>
+                                        <a asp-controller="Kyc" asp-action="Index" class="btn btn-sm btn-primary">
+                                            معاينة وقرار
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- أحدث العمليات والتحويلات -->
+    <div class="col-lg-6">
+        <div class="card bg-body rounded-4 p-4 shadow-sm h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> أحدث العمليات في النظام</h6>
+                <a asp-controller="Transactions" asp-action="Index" class="btn btn-sm btn-outline-primary">عرض السجل الكامل</a>
+            </div>
+
+            @if (Model.RecentTransactions == null || !Model.RecentTransactions.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-inbox fs-1 mb-2"></i>
+                    <p class="mb-0">لا توجد عمليات مسجلة بعد</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم العملية</th>
+                                <th>النوع</th>
+                                <th>المبلغ</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var trx in Model.RecentTransactions)
+                            {
+                                <tr>
+                                    <td class="small font-monospace">@trx.TransactionNumber</td>
+                                    <td><span class="badge bg-secondary">@trx.TypeNameAr</span></td>
+                                    <td class="fw-bold text-success">@trx.Amount.ToString("N2") @trx.CurrencyCode</td>
+                                    <td class="small text-muted">@trx.CreatedAt.ToString("MM-dd HH:mm")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

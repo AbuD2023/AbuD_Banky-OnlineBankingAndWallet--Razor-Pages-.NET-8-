@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - لوحة تحكم Banky المصرفية</title>
+
+    <!-- خط كايرو العربي الأنيق -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom Banky Admin Style -->
+    <style>
+        :root {
+            --bs-font-sans-serif: 'Cairo', system-ui, -apple-system, sans-serif;
+            --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            --sidebar-width: 270px;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bs-body-bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: -2px 0 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .main-wrapper {
+            margin-right: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link {
+            border-radius: 10px;
+            padding: 10px 16px;
+            margin-bottom: 4px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--bs-secondary-color);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(13, 110, 253, 0.12);
+            color: #0d6efd;
+        }
+
+        .nav-link i {
+            font-size: 1.15rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Metric Cards */
+        .stat-card {
+            border-radius: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .badge-kyc-PendingApproval { background-color: #ffc107; color: #000; }
+        .badge-kyc-Approved { background-color: #198754; color: #fff; }
+        .badge-kyc-Rejected { background-color: #dc3545; color: #fff; }
+        .badge-kyc-NotSubmitted { background-color: #6c757d; color: #fff; }
+
+        @@media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-wrapper {
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- الشريط الجانبي (Sidebar) -->
+    <aside class="sidebar bg-body border-start p-3 d-flex flex-column">
+        <!-- شعار النظام -->
+        <div class="d-flex align-items-center gap-3 px-2 py-3 mb-3 border-bottom">
+            <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                <i class="fa-solid fa-building-columns fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold text-primary">Banky Admin</h5>
+                <small class="text-muted">النظام البنكي المتكامل</small>
+            </div>
+        </div>
+
+        <!-- القائمة الرئيسية -->
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a asp-controller="Dashboard" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Dashboard" ? "active" : "")">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>الرئيسية والإحصاءات</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a asp-controller="Kyc" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Kyc" ? "active" : "")">
+                    <i class="fa-solid fa-id-card"></i>
+                    <span>توثيق الهويات (KYC)</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a asp-controller="Clients" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Clients" ? "active" : "")">
+                    <i class="fa-solid fa-users"></i>
+                    <span>العملاء والمحافظ</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a asp-controller="Currencies" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Currencies" ? "active" : "")">
+                    <i class="fa-solid fa-coins"></i>
+                    <span>إدارة العملات</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a asp-controller="Pos" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pos" ? "active" : "")">
+                    <i class="fa-solid fa-store"></i>
+                    <span>نقاط البيع (POS)</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a asp-controller="Transactions" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Transactions" ? "active" : "")">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                    <span>سجل العمليات والتحويلات</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- زر تبديل الوضع الداكن/الفاتح والخروج -->
+        <div class="border-top pt-3 mt-auto">
+            <div class="d-flex align-items-center justify-content-between px-2 mb-3">
+                <span class="small fw-semibold text-muted">المظهر</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="setTheme('light')" title="الوضع الفاتح"><i class="fa-solid fa-sun"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setTheme('dark')" title="الوضع الداكن"><i class="fa-solid fa-moon"></i></button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setTheme('auto')" title="تلقائي"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                </div>
+            </div>
+
+            <form asp-controller="Account" asp-action="Logout" method="post" class="w-100">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>تسجيل الخروج</span>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- المحتوى الرئيسي والشريط العلوي -->
+    <div class="main-wrapper">
+        <!-- الشريط العلوي (Top Navbar) -->
+        <header class="navbar navbar-expand bg-body border-bottom px-4 py-3 sticky-top">
+            <button class="btn btn-outline-secondary d-lg-none me-2" type="button" onclick="document.querySelector('.sidebar').classList.toggle('show')">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <h5 class="mb-0 fw-bold">@ViewData["Title"]</h5>
+
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary-subtle text-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold small">@(User.Identity?.Name ?? "مدير النظام")</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">مسؤول النظام العام</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- رسائل التنبيه والعمليات (Alerts) -->
+        <div class="container-fluid p-4 flex-grow-1">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 rounded-3 shadow-sm mb-4" role="alert">
+                    <i class="fa-solid fa-circle-check fs-5"></i>
+                    <div>@TempData["SuccessMessage"]</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 rounded-3 shadow-sm mb-4" role="alert">
+                    <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+                    <div>@TempData["ErrorMessage"]</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </div>
+
+        <!-- تذييل الصفحة -->
+        <footer class="footer mt-auto py-3 bg-body border-top text-center text-muted small">
+            <div class="container-fluid">
+                نظام Banky المصرفي والمحفظة الإلكترونية © @DateTime.UtcNow.Year - مشروع التخرج الجامعي المتكامل
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script لإدارة وتثبيت الوضع الداكن / الفاتح / التلقائي -->
+    <script>
+        function setTheme(theme) {
+            if (theme === 'auto') {
+                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+                localStorage.setItem('banky_theme', 'auto');
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                localStorage.setItem('banky_theme', theme);
+            }
+        }
+
+        // تطبيق الثيم المحفوظ عند تحميل الصفحة
+        (function() {
+            const savedTheme = localStorage.getItem('banky_theme') || 'auto';
+            setTheme(savedTheme);
+        })();
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
