@@ -77,9 +77,30 @@ dotnet run --project Banky.Web
 - [فتح مستودع تطبيق Flutter](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone)
 - [فتح مستودع ASP.NET الحالي](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-)
 
+لتنزيل تطبيق الهاتف بجانب الخادم وتشغيله:
+
+```bash
+git clone https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone.git
+cd AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone
+flutter pub get
+```
+
+بعد تشغيل `Banky.API`، اضبط `baseUrl` في `lib/core/api_constants.dart` داخل مستودع Flutter على عنوان API الذي يمكن للمحاكي أو الهاتف الوصول إليه، ثم شغّل `flutter run`. عنوان `localhost` من الهاتف الفعلي لا يشير إلى جهاز الخادم؛ استخدم عنوان الشبكة المحلية للجهاز، أو عنوان المحاكي المناسب. خطوات Flutter الكاملة موجودة في README الخاص بمستودعه.
+
+## صور الواجهات
+
+لا يتضمن المستودع لقطات واجهات حاليًا. بعد التقاط صور من التطبيق الفعلي، أنشئ `docs/screenshots/` وأضف إليها صورًا مثل `admin-dashboard.png` و`api-swagger.png`، بعد إخفاء أي بيانات شخصية أو أسرار. اعرضها في README باستخدام مسارات نسبية ونص بديل واضح:
+
+```markdown
+![لوحة إدارة Banky](docs/screenshots/admin-dashboard.png)
+![توثيق Banky API عبر Swagger](docs/screenshots/api-swagger.png)
+```
+
+أضف الصور إلى Git وادفعها مع تحديث README؛ لا تستخدم لقطات تجريبية أو بيانات عملاء حقيقية.
+
 ## الأمان والاستخدام
 
-هذا المشروع نموذج تعليمي/تطبيقي، وليس نظامًا مصرفيًا معتمدًا لمعالجة أموال حقيقية. يتطلب النشر الفعلي مراجعة أمنية مستقلة، وإعداد HTTPS وCORS وقيم الأسرار، والتحقق من المصادقة والصلاحيات والعمليات المالية والبيانات الشخصية. لا تستخدم بيانات عملاء حقيقية.
+هذا المشروع نموذج تعليمي/تطبيقي، وليس نظامًا مصرفيًا معتمدًا لمعالجة أموال حقيقية. قبل جعل المستودع عامًا، افحص `Banky.API/appsettings.json`: لا ترفع مفاتيح JWT أو كلمات مرور أو connection strings حقيقية، واحذف أي قيمة مكشوفة من الملفات وسجل Git ثم دوّرها. استخدم .NET User Secrets محليًا أو متغيرات بيئة في النشر. يتطلب النشر الفعلي مراجعة أمنية مستقلة وإعداد HTTPS وCORS والتحقق من المصادقة والصلاحيات والعمليات المالية والبيانات الشخصية. لا تستخدم بيانات عملاء حقيقية.
 
 ## المساهمة والترخيص
 
@@ -124,6 +145,8 @@ The mobile client is maintained separately: [AbuD Banky Flutter Mobile App](http
 Suggested repository description: **ASP.NET Core .NET 8 banking platform with a REST API, SQL Server, and admin portal for wallets, transfers, POS, KYC, and transactions.**
 
 Suggested topics: `aspnet-core`, `dotnet`, `dotnet8`, `csharp`, `web-api`, `sql-server`, `digital-wallet`, `banking`, `fintech`, `point-of-sale`.
+
+To apply these on GitHub, open the repository page, select the **About** gear, enter the description, and add the topics above. Add the Flutter repository URL to the Website field so visitors can find the client. For a Social Preview, open **Settings > General > Social preview** and upload a project-branded image (1280 x 640 px recommended). Add real UI screenshots under `docs/screenshots/` and embed them in this README as shown above. Keep the description and topics specific to this ASP.NET repository; do not add unrelated keywords.
 
 ### Security notice
 
