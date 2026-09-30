@@ -1,0 +1,461 @@
+@model Banky.Web.Models.TellerClientSummaryModel?
+@{
+    ViewData["Title"] = "مكتب الصندوق - السحب والإيداع";
+    var currencies = ViewBag.Currencies as List<Banky.Web.Models.CurrencyModel> ?? new List<Banky.Web.Models.CurrencyModel>();
+    var recentOperations = ViewBag.RecentOperations as List<Banky.Web.Models.TransactionModel> ?? new List<Banky.Web.Models.TransactionModel>();
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Teller";
+
+    bool canDeposit = userRole == "Admin" || userRole == "Teller" || userRole == "TellerDeposit";
+    bool canWithdraw = userRole == "Admin" || userRole == "Teller" || userRole == "TellerWithdrawal";
+}
+
+<div class="container-fluid py-4">
+    <!-- ترويسة مكتب الصندوق -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-cash-register text-primary me-2"></i>مكتب الصندوق - السحب والإيداع
+            </h3>
+            <p class="text-muted mb-0 small">
+                استعلام فوري عن حسابات ومحافظ العملاء، تغذية الأرصدة بأي عملة معتمدة، تنفيذ السحوبات النقدية، وفتح المحافظ الجديدة.
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle p-2 px-3 rounded-pill fw-semibold">
+                <i class="fa-solid fa-user-tag me-1"></i>الصلاحية الحالية: @userRole
+            </span>
+        </div>
+    </div>
+
+    <!-- تنبيهات النجاح والخطأ -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- 1. شريط البحث عن العميل -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <form method="get" asp-action="Index" class="row g-3 align-items-center">
+                <div class="col-md-9 col-lg-10">
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-white border-end-0 rounded-start-3">
+                            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                        </span>
+                        <input type="text" name="query" value="@ViewBag.SearchQuery" class="form-control border-start-0 rounded-end-3" placeholder="ابحث برقم هاتف العميل (مثال: 771234567) أو البريد الإلكتروني أو رقم الحساب أو المعرف..." required />
+                    </div>
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold">
+                        <i class="fa-solid fa-search me-1"></i> بحث واستعلام
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model != null)
+    {
+        <!-- 2. تفاصيل العميل والمحافظ المتاحة -->
+        <div class="row g-4 mb-4">
+            <!-- بطاقة بيانات العميل -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 60px; height: 60px;">
+                                @(string.IsNullOrWhiteSpace(Model.FullName) ? "U" : Model.FullName.Substring(0, 1))
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0 text-dark">@Model.FullName</h5>
+                                <span class="text-muted small font-monospace"><i class="fa-solid fa-phone me-1"></i>@Model.Phone</span>
+                            </div>
+                        </div>
+
+                        <hr class="my-3 opacity-10" />
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">حالة التوثيق (KYC):</span>
+                            @if (Model.KycStatus == "Approved")
+                            {
+                                <span class="badge bg-success"><i class="fa-solid fa-check-circle me-1"></i>موثق ومقبول</span>
+                            }
+                            else if (Model.KycStatus == "PendingApproval")
+                            {
+                                <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>بانتظار المراجعة</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">غير موثق</span>
+                            }
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">البريد الإلكتروني:</span>
+                            <span class="small font-monospace text-dark">@Model.Email</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">حالة الحساب:</span>
+                            <span class="badge @(Model.IsBlocked ? "bg-danger" : "bg-success")">
+                                @(Model.IsBlocked ? "محظور" : "نشط ومفعل")
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">تاريخ الانضمام:</span>
+                            <span class="small text-muted font-monospace">@Model.CreatedAt.ToString("yyyy-MM-dd")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة محافظ العميل الحالية وإضافة محفظة -->
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="fa-solid fa-wallet text-primary me-2"></i>محافظ العميل المالية
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#addWalletModal">
+                            <i class="fa-solid fa-plus me-1"></i>فتح محفظة جديدة
+                        </button>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            @if (Model.Wallets.Any())
+                            {
+                                foreach (var wallet in Model.Wallets)
+                                {
+                                    <div class="col-md-6 col-xl-4">
+                                        <div class="p-3 rounded-4 bg-light border transition-hover position-relative">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="badge bg-primary text-white font-monospace">@wallet.CurrencyCode</span>
+                                                <small class="text-muted font-monospace">@wallet.AccountNumber</small>
+                                            </div>
+                                            <div class="text-muted small">@wallet.CurrencyNameAr</div>
+                                            <div class="fs-5 fw-bold text-success mt-1">
+                                                @wallet.Balance.ToString("N2") <span class="fs-6">@wallet.CurrencySymbol</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="col-12 text-center py-4 text-muted">
+                                    لا توجد محافظ مفتوحة لهذا العميل بعد. يمكنك فتح محفظة له فوراً.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. نافذة تنفيذ العمليات (إيداع وسحب) -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <ul class="nav nav-pills nav-fill p-1 bg-light rounded-4" role="tablist">
+                    @if (canDeposit)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-4 fw-bold py-3" id="deposit-tab" data-bs-toggle="tab" data-bs-target="#deposit-pane" type="button" role="tab">
+                                <i class="fa-solid fa-arrow-down-to-bracket me-2 text-success"></i>إيداع وتغذية رصيد العميل
+                            </button>
+                        </li>
+                    }
+                    @if (canWithdraw)
+                    {
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @(!canDeposit ? "active" : "") rounded-4 fw-bold py-3" id="withdraw-tab" data-bs-toggle="tab" data-bs-target="#withdraw-pane" type="button" role="tab">
+                                <i class="fa-solid fa-hand-holding-dollar me-2 text-danger"></i>سحب نقدي من حساب العميل
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="tab-content">
+                    <!-- نموذج الإيداع -->
+                    @if (canDeposit)
+                    {
+                        <div class="tab-pane fade show active" id="deposit-pane" role="tabpanel">
+                            <form asp-action="Deposit" method="post" id="depositForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ClientId" value="@Model.ClientId" />
+                                <input type="hidden" name="ClientName" value="@Model.FullName" />
+                                <input type="hidden" name="ClientPhone" value="@Model.Phone" />
+
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small">عملة الإيداع</label>
+                                        <select name="CurrencyCode" class="form-select form-select-lg rounded-3" required>
+                                            @foreach (var c in currencies)
+                                            {
+                                                <option value="@c.Code">@c.NameAr (@c.Code) - @c.Symbol</option>
+                                            }
+                                        </select>
+                                        <small class="text-muted">إذا لم تكن المحفظة مفتوحة بتلك العملة، سيتم إنشاؤها تلقائياً.</small>
+                                    </div>
+
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-bold small">مبلغ الإيداع</label>
+                                        <input type="number" step="0.01" min="1" name="Amount" id="depositAmountInput" class="form-control form-control-lg rounded-3 fw-bold font-monospace" placeholder="0.00" required />
+                                        
+                                        <!-- أزرار سريعة للمبالغ -->
+                                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="setDepositAmount(10000)">10,000</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="setDepositAmount(50000)">50,000</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="setDepositAmount(100000)">100,000</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="setDepositAmount(500000)">500,000</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold small">البيان / رقم السند</label>
+                                        <input type="text" name="Note" class="form-control form-control-lg rounded-3" placeholder="تغذية نقدية عبر الصندوق" />
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <button type="submit" class="btn btn-success btn-lg w-100 rounded-3 fw-bold py-3 shadow-sm" onclick="return confirm('هل أنت متأكد من تنفيذ عملية الإيداع لحساب العميل؟');">
+                                            <i class="fa-solid fa-check-circle me-2"></i>تأكيد وتنفيذ الإيداع النقدي
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    }
+
+                    <!-- نموذج السحب -->
+                    @if (canWithdraw)
+                    {
+                        <div class="tab-pane fade @(!canDeposit ? "show active" : "")" id="withdraw-pane" role="tabpanel">
+                            <form asp-action="Withdraw" method="post" id="withdrawForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ClientId" value="@Model.ClientId" />
+                                <input type="hidden" name="ClientName" value="@Model.FullName" />
+                                <input type="hidden" name="ClientPhone" value="@Model.Phone" />
+
+                                <div class="row g-4">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold small">السحب من محفظة</label>
+                                        <select name="CurrencyCode" class="form-select form-select-lg rounded-3" required>
+                                            @foreach (var w in Model.Wallets)
+                                            {
+                                                <option value="@w.CurrencyCode">@w.CurrencyNameAr (@w.CurrencyCode) - الرصيد: @w.Balance.ToString("N2") @w.CurrencySymbol</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-bold small">مبلغ السحب النقدي</label>
+                                        <input type="number" step="0.01" min="1" name="Amount" class="form-control form-control-lg rounded-3 fw-bold font-monospace" placeholder="0.00" required />
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold small">البيان / ملاحظات</label>
+                                        <input type="text" name="Note" class="form-control form-control-lg rounded-3" placeholder="سحب نقدي من الصندوق" />
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <button type="submit" class="btn btn-danger btn-lg w-100 rounded-3 fw-bold py-3 shadow-sm" onclick="return confirm('هل أنت متأكد من تسليم المبلغ نقداً وتنفيذ السحب؟');">
+                                            <i class="fa-solid fa-money-bill-transfer me-2"></i>تأكيد وصرف السحب النقدي
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- 4. سجل أحدث العمليات المنفذة في الصندوق -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+            <h5 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-receipt text-primary me-2"></i>أحدث عمليات الصندوق (السحب والإيداع)
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            @if (recentOperations.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم العملية</th>
+                                <th>النوع</th>
+                                <th>العميل / الطرف الآخر</th>
+                                <th>المبلغ والعملة</th>
+                                <th>الرسوم</th>
+                                <th>التاريخ والتوقيت</th>
+                                <th>البيان</th>
+                                <th>إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var trx in recentOperations)
+                            {
+                                <tr>
+                                    <td class="font-monospace fw-bold text-primary">@trx.TransactionNumber</td>
+                                    <td>
+                                        @if (trx.Type == "Deposit")
+                                        {
+                                            <span class="badge bg-success"><i class="fa-solid fa-arrow-down me-1"></i>إيداع وتغذية</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger"><i class="fa-solid fa-arrow-up me-1"></i>سحب نقدي</span>
+                                        }
+                                    </td>
+                                    <td class="fw-bold">@(trx.Type == "Deposit" ? trx.ReceiverDisplayName : trx.SenderDisplayName)</td>
+                                    <td class="fw-bold fs-6 font-monospace @(trx.Type == "Deposit" ? "text-success" : "text-danger")">
+                                        @(trx.Type == "Deposit" ? "+" : "-")@trx.Amount.ToString("N2") @trx.CurrencySymbol
+                                    </td>
+                                    <td class="text-muted small">@trx.Fee.ToString("N2")</td>
+                                    <td class="small text-muted font-monospace">@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="small text-muted">@(trx.Note ?? "-")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="printReceipt('@trx.TransactionNumber', '@trx.TypeNameAr', '@(trx.Type == "Deposit" ? trx.ReceiverDisplayName : trx.SenderDisplayName)', '@trx.Amount.ToString("N2") @trx.CurrencySymbol', '@trx.Fee.ToString("N2")', '@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm")', '@trx.Note')">
+                                            <i class="fa-solid fa-print me-1"></i>طباعة سند
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-receipt fa-3x mb-3 text-secondary opacity-50"></i>
+                    <p>لا توجد عمليات سحب أو إيداع حديثة مسجلة في الصندوق.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal فتح محفظة جديدة للعميل -->
+@if (Model != null)
+{
+    <div class="modal fade" id="addWalletModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <form asp-action="AddWallet" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ClientId" value="@Model.ClientId" />
+                    <input type="hidden" name="redirectPhone" value="@Model.Phone" />
+
+                    <div class="modal-header bg-primary text-white border-0 rounded-top-4">
+                        <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus me-2"></i>فتح محفظة جديدة للعميل</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="mb-3">فتح محفظة مالية للعميل: <strong class="text-primary">@Model.FullName</strong></p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">اختر عملة المحفظة</label>
+                            <select name="CurrencyCode" class="form-select form-select-lg rounded-3" required>
+                                @foreach (var c in currencies)
+                                {
+                                    bool hasWallet = Model.Wallets.Any(w => w.CurrencyCode == c.Code);
+                                    <option value="@c.Code" disabled="@hasWallet">
+                                        @c.NameAr (@c.Code) @(hasWallet ? " - (مفتوحة مسبقاً)" : "")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="button" class="btn btn-light rounded-3" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary rounded-3 fw-bold px-4">تأكيد وفتح المحفظة</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal سند الصندوق للطباعة -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow" id="printableReceipt">
+            <div class="modal-header bg-light border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-building-columns me-2"></i>سند عملية - Banky</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4 pb-3 border-bottom">
+                    <h4 class="fw-bold mb-1" id="recType">سند إيداع</h4>
+                    <span class="text-muted small font-monospace" id="recNumber">TRX-0000</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">العميل:</span>
+                    <strong id="recClient">-</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">المبلغ:</span>
+                    <strong class="fs-5 text-primary" id="recAmount">-</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">الرسوم والعمولة:</span>
+                    <span id="recFee">0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">التاريخ والتوقيت:</span>
+                    <span class="font-monospace small" id="recDate">-</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">البيان:</span>
+                    <span class="small" id="recNote">-</span>
+                </div>
+                <div class="p-3 bg-light rounded-3 text-center small text-muted">
+                    شكراً لتعاملكم مع Banky • عمليات بنكية آمنة وموثوقة
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary rounded-3 fw-bold px-4" onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i>طباعة السند
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function setDepositAmount(val) {
+        document.getElementById('depositAmountInput').value = val;
+    }
+
+    function printReceipt(num, type, client, amount, fee, date, note) {
+        document.getElementById('recNumber').innerText = num;
+        document.getElementById('recType').innerText = `سند ${type}`;
+        document.getElementById('recClient').innerText = client;
+        document.getElementById('recAmount').innerText = amount;
+        document.getElementById('recFee').innerText = fee;
+        document.getElementById('recDate').innerText = date;
+        document.getElementById('recNote').innerText = note || '-';
+
+        new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+</script>
+}

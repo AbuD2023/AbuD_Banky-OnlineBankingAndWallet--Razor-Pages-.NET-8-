@@ -14,6 +14,8 @@ namespace Banky.Web.Models
         public bool IsActive { get; set; }
         public string MerchantName { get; set; } = string.Empty;
         public string MerchantPhone { get; set; } = string.Empty;
+        public string MerchantEmail { get; set; } = string.Empty;
+        public string MerchantKycStatus { get; set; } = string.Empty;
         public decimal TotalSalesAmount { get; set; }
         public int TotalSalesCount { get; set; }
         public DateTime CreatedAt { get; set; }

@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h5 class="fw-bold mb-1"><i class="fa-solid fa-money-bill-transfer text-primary me-2"></i> سجل العمليات والحركات المالية</h5>
-            <p class="text-muted small mb-0">متابعة كافة التحويلات بين المشتركين، المدفوعات لنقاط البيع، وعمليات التغذية والإيداع</p>
+            <p class="text-muted small mb-0">كافة العمليات تظهر بالأسماء والأرقام الحقيقية الكاملة للإدارة والتدقيق - انقر على أي صف لمشاهدة التفاصيل</p>
         </div>
         <div class="badge bg-success fs-6 px-3 py-2 rounded-pill">
             <i class="fa-solid fa-receipt me-1"></i> @Model.Count حركة مالية
@@ -31,6 +31,7 @@
                 <option value="">جميع العمليات</option>
                 <option value="TransferByPhone" selected="@(ViewBag.Type == "TransferByPhone")">تحويل لمشترك برقم الهاتف</option>
                 <option value="PosPayment" selected="@(ViewBag.Type == "PosPayment")">شراء / دفع لنقطة بيع</option>
+                <option value="SelfExchange" selected="@(ViewBag.Type == "SelfExchange")">تحويل ومصارفة بين حساباتي</option>
                 <option value="Deposit" selected="@(ViewBag.Type == "Deposit")">إيداع وتغذية رصيد</option>
             </select>
         </div>
@@ -63,18 +64,24 @@
                         <th>رقم العملية</th>
                         <th>النوع</th>
                         <th>المبلغ</th>
-                        <th>المرسل</th>
-                        <th>المستلم / نقطة البيع</th>
+                        <th>المرسل (الاسم والرقم الحقيقي)</th>
+                        <th>المستلم (الاسم والرقم الحقيقي)</th>
                         <th>البيان والملاحظات</th>
                         <th>التاريخ والتوقيت</th>
                         <th>الحالة</th>
+                        <th>تفاصيل</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var trx in Model)
                     {
-                        <tr>
-                            <td class="font-monospace small fw-bold">@trx.TransactionNumber</td>
+                        var senderName = !string.IsNullOrEmpty(trx.SenderRealFullName) ? trx.SenderRealFullName : (trx.SenderDisplayName ?? "إيداع مباشر");
+                        var senderPhone = !string.IsNullOrEmpty(trx.SenderRealPhone) ? trx.SenderRealPhone : (trx.SenderDisplayPhone ?? "---");
+                        var receiverName = !string.IsNullOrEmpty(trx.ReceiverRealFullName) ? trx.ReceiverRealFullName : (trx.ReceiverDisplayName ?? "---");
+                        var receiverPhone = !string.IsNullOrEmpty(trx.ReceiverRealPhone) ? trx.ReceiverRealPhone : "---";
+
+                        <tr style="cursor: pointer;" onclick="openTrxDetailModal('@trx.TransactionNumber', '@trx.TypeNameAr', '@trx.Amount.ToString("N2")', '@trx.CurrencyCode', '@trx.Fee.ToString("N2")', '@trx.TotalAmount.ToString("N2")', '@trx.StatusNameAr', '@senderName', '@senderPhone', '@(trx.SenderClientId?.ToString() ?? "")', '@receiverName', '@receiverPhone', '@(trx.ReceiverClientId?.ToString() ?? "")', '@(trx.PosName ?? "")', '@(trx.Note ?? "")', '@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")')">
+                            <td class="font-monospace small fw-bold text-primary">@trx.TransactionNumber</td>
                             <td>
                                 @switch (trx.Type)
                                 {
@@ -83,6 +90,9 @@
                                         break;
                                     case "PosPayment":
                                         <span class="badge bg-info-subtle text-info"><i class="fa-solid fa-store me-1"></i> دفع لنقطة بيع</span>
+                                        break;
+                                    case "SelfExchange":
+                                        <span class="badge bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> بين حساباتي</span>
                                         break;
                                     case "Deposit":
                                         <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-arrow-down me-1"></i> إيداع رصيد</span>
@@ -96,20 +106,21 @@
                                 @trx.Amount.ToString("N2") <span class="small">@trx.CurrencySymbol</span>
                             </td>
                             <td>
-                                <div class="fw-semibold">@(trx.SenderDisplayName ?? "إيداع مباشر")</div>
-                                @if (!string.IsNullOrEmpty(trx.SenderDisplayPhone))
-                                {
-                                    <small class="text-muted font-monospace" dir="ltr">@trx.SenderDisplayPhone</small>
-                                }
+                                <div class="fw-bold text-primary">@senderName</div>
+                                <small class="text-muted font-monospace" dir="ltr">@senderPhone</small>
                             </td>
                             <td>
-                                <div class="fw-semibold">@trx.ReceiverDisplayName</div>
+                                <div class="fw-bold text-success">@receiverName</div>
+                                @if (receiverPhone != "---")
+                                {
+                                    <small class="text-muted font-monospace" dir="ltr">@receiverPhone</small>
+                                }
                                 @if (!string.IsNullOrEmpty(trx.PosName))
                                 {
-                                    <small class="text-info"><i class="fa-solid fa-shop me-1"></i> @trx.PosName</small>
+                                    <div><small class="text-info"><i class="fa-solid fa-shop me-1"></i> @trx.PosName</small></div>
                                 }
                             </td>
-                            <td class="small text-muted">@trx.Note</td>
+                            <td class="small text-muted text-truncate" style="max-width: 150px;">@trx.Note</td>
                             <td class="small font-monospace">@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
                                 @if (trx.Status == "Completed")
@@ -121,6 +132,11 @@
                                     <span class="badge bg-danger">@trx.StatusNameAr</span>
                                 }
                             </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); openTrxDetailModal('@trx.TransactionNumber', '@trx.TypeNameAr', '@trx.Amount.ToString("N2")', '@trx.CurrencyCode', '@trx.Fee.ToString("N2")', '@trx.TotalAmount.ToString("N2")', '@trx.StatusNameAr', '@senderName', '@senderPhone', '@(trx.SenderClientId?.ToString() ?? "")', '@receiverName', '@receiverPhone', '@(trx.ReceiverClientId?.ToString() ?? "")', '@(trx.PosName ?? "")', '@(trx.Note ?? "")', '@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")')">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -128,3 +144,138 @@
         </div>
     }
 </div>
+
+<!-- Modal تفاصيل الحركة المالية المتقدمة -->
+<div class="modal fade" id="trxDetailModal" tabindex="-1" aria-labelledby="trxDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="trxDetailModalLabel">
+                    <i class="fa-solid fa-receipt me-2"></i> تفاصيل الحركة المالية وبيانات الطرفين
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <span class="badge bg-primary-subtle text-primary fs-6 px-3 py-2 rounded-pill font-monospace" id="modalDetailTrxNumber"></span>
+                    <h2 class="fw-bold mt-2 text-success" id="modalDetailTrxAmount"></h2>
+                    <span class="badge bg-success" id="modalDetailTrxStatus"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <!-- طرف الإرسال -->
+                    <div class="col-md-6">
+                        <div class="card p-3 bg-light rounded-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-user me-2"></i> طرف الإرسال (المرسل)</h6>
+                                <a id="modalSenderProfileBtn" href="#" class="btn btn-sm btn-outline-primary d-none">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+                            <span class="small text-muted d-block">الاسم الكامل الحقيقي:</span>
+                            <span class="fw-bold text-primary fs-6 d-block mb-2" id="modalDetailSenderName"></span>
+
+                            <span class="small text-muted d-block">رقم الهاتف الحقيقي:</span>
+                            <span class="fw-bold font-monospace d-block" dir="ltr" id="modalDetailSenderPhone"></span>
+                        </div>
+                    </div>
+
+                    <!-- طرف الاستلام -->
+                    <div class="col-md-6">
+                        <div class="card p-3 bg-light rounded-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-success mb-0"><i class="fa-solid fa-user-check me-2"></i> طرف الاستلام (المستلم)</h6>
+                                <a id="modalReceiverProfileBtn" href="#" class="btn btn-sm btn-outline-success d-none">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+                            <span class="small text-muted d-block">الاسم الكامل / المتجر:</span>
+                            <span class="fw-bold text-success fs-6 d-block mb-2" id="modalDetailReceiverName"></span>
+
+                            <span class="small text-muted d-block">رقم الهاتف:</span>
+                            <span class="fw-bold font-monospace d-block" dir="ltr" id="modalDetailReceiverPhone"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تفاصيل مالية وإدارية -->
+                <div class="list-group list-group-flush rounded-3 border">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">نوع العملية:</span>
+                        <span class="fw-bold" id="modalDetailTrxType"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between d-none" id="modalDetailPosRow">
+                        <span class="text-muted">نقطة البيع (POS):</span>
+                        <span class="fw-bold text-info" id="modalDetailPosName"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">الرسوم والعمولة:</span>
+                        <span class="fw-bold" id="modalDetailTrxFee"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">المبلغ الإجمالي:</span>
+                        <span class="fw-bold text-primary" id="modalDetailTrxTotal"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">تاريخ وتوقيت العملية:</span>
+                        <span class="fw-bold small font-monospace" id="modalDetailTrxDate"></span>
+                    </div>
+                    <div class="list-group-item">
+                        <span class="text-muted d-block small mb-1">البيان والملاحظات:</span>
+                        <span class="fw-semibold text-break" id="modalDetailTrxNote"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openTrxDetailModal(num, type, amount, curr, fee, total, status, sName, sPhone, sId, rName, rPhone, rId, pos, note, date) {
+            document.getElementById('modalDetailTrxNumber').textContent = num;
+            document.getElementById('modalDetailTrxType').textContent = type;
+            document.getElementById('modalDetailTrxAmount').textContent = amount + ' ' + curr;
+            document.getElementById('modalDetailTrxStatus').textContent = status;
+
+            document.getElementById('modalDetailSenderName').textContent = sName || '---';
+            document.getElementById('modalDetailSenderPhone').textContent = sPhone || '---';
+
+            const sBtn = document.getElementById('modalSenderProfileBtn');
+            if (sId && sId.trim().length > 0) {
+                sBtn.href = '/Clients/Details/' + sId;
+                sBtn.classList.remove('d-none');
+            } else {
+                sBtn.classList.add('d-none');
+            }
+
+            document.getElementById('modalDetailReceiverName').textContent = rName || '---';
+            document.getElementById('modalDetailReceiverPhone').textContent = rPhone || '---';
+
+            const rBtn = document.getElementById('modalReceiverProfileBtn');
+            if (rId && rId.trim().length > 0) {
+                rBtn.href = '/Clients/Details/' + rId;
+                rBtn.classList.remove('d-none');
+            } else {
+                rBtn.classList.add('d-none');
+            }
+
+            document.getElementById('modalDetailTrxFee').textContent = fee + ' ' + curr;
+            document.getElementById('modalDetailTrxTotal').textContent = total + ' ' + curr;
+            document.getElementById('modalDetailTrxDate').textContent = date;
+            document.getElementById('modalDetailTrxNote').textContent = note || 'لا توجد ملاحظات';
+
+            if (pos && pos.trim().length > 0) {
+                document.getElementById('modalDetailPosRow').classList.remove('d-none');
+                document.getElementById('modalDetailPosName').textContent = pos;
+            } else {
+                document.getElementById('modalDetailPosRow').classList.add('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('trxDetailModal')).show();
+        }
+    </script>
+}

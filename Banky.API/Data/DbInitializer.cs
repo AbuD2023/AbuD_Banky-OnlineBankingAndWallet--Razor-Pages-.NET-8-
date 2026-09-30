@@ -214,6 +214,92 @@ namespace Banky.API.Data
                 await context.Transactions.AddAsync(sampleTrx);
                 await context.SaveChangesAsync();
             }
+
+            // 4. إضافة إعدادات الرسوم والعمولات الافتراضية للعمليات المصرفية
+            if (!await context.FeeSettings.AnyAsync())
+            {
+                var defaultFees = new List<FeeSetting>
+                {
+                    new FeeSetting
+                    {
+                        OperationType = "TransferByPhone",
+                        CurrencyCode = null, // ينطبق على كل العملات كافتراضي
+                        NameAr = "رسوم التحويل المالي بين المشتركين",
+                        Description = "عمولة رمزية تقتطع من المرسل عند التحويل لمشترك آخر برقم الهاتف (0.5% بحد أقصى 500)",
+                        FeeType = "Percentage",
+                        Percentage = 0.5000m,
+                        FixedAmount = 0.00m,
+                        MinFee = 0.00m,
+                        MaxFee = 500.00m,
+                        IsActive = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = "نظام التهيئة الافتراضي"
+                    },
+                    new FeeSetting
+                    {
+                        OperationType = "SelfExchange",
+                        CurrencyCode = null,
+                        NameAr = "عمولة الصرف والمصارفة بين الحسابات",
+                        Description = "عمولة فارق الصرف والتحويل بين محافظ العميل الشخصية المختلفة (0.2%)",
+                        FeeType = "Percentage",
+                        Percentage = 0.2000m,
+                        FixedAmount = 0.00m,
+                        MinFee = 0.00m,
+                        MaxFee = 0.00m,
+                        IsActive = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = "نظام التهيئة الافتراضي"
+                    },
+                    new FeeSetting
+                    {
+                        OperationType = "PosPayment",
+                        CurrencyCode = null,
+                        NameAr = "رسوم الدفع والشراء عبر نقاط البيع (POS)",
+                        Description = "رسوم خدمة الشراء عبر نقاط البيع (معفاة افتراضياً للعميل 0% تشجيعاً للمدفوعات الرقمية)",
+                        FeeType = "Percentage",
+                        Percentage = 0.0000m,
+                        FixedAmount = 0.00m,
+                        MinFee = 0.00m,
+                        MaxFee = 0.00m,
+                        IsActive = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = "نظام التهيئة الافتراضي"
+                    },
+                    new FeeSetting
+                    {
+                        OperationType = "Deposit",
+                        CurrencyCode = null,
+                        NameAr = "رسوم إيداع وتغذية الرصيد",
+                        Description = "خدمة إيداع مجانية تماماً لتغذية المحافظ المالية",
+                        FeeType = "Percentage",
+                        Percentage = 0.0000m,
+                        FixedAmount = 0.00m,
+                        MinFee = 0.00m,
+                        MaxFee = 0.00m,
+                        IsActive = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = "نظام التهيئة الافتراضي"
+                    },
+                    new FeeSetting
+                    {
+                        OperationType = "Withdrawal",
+                        CurrencyCode = null,
+                        NameAr = "رسوم السحب النقدي",
+                        Description = "عمولة السحب النقدي عبر الوكلاء ونقاط الصرف المعتمدة (1% بحد أدنى 50)",
+                        FeeType = "Percentage",
+                        Percentage = 1.0000m,
+                        FixedAmount = 0.00m,
+                        MinFee = 50.00m,
+                        MaxFee = 2000.00m,
+                        IsActive = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = "نظام التهيئة الافتراضي"
+                    }
+                };
+
+                await context.FeeSettings.AddRangeAsync(defaultFees);
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

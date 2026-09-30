@@ -72,7 +72,7 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    final result = await ApiService.login(identifier: identifier, password: password);
+    final result = await ApiService().login(identifier, password);
     _isLoading = false;
 
     if (result['success'] == true) {
@@ -141,10 +141,13 @@ class AuthProvider extends ChangeNotifier {
     _wallets = fetchedWallets;
 
     if (_wallets.isNotEmpty) {
-      if (_selectedWallet == null || !_wallets.any((w) => w.id == _selectedWallet!.id)) {
+      if (_selectedWallet == null ||
+          !_wallets.any((w) => w.id == _selectedWallet!.id)) {
         _selectedWallet = _wallets.first;
       } else {
-        _selectedWallet = _wallets.firstWhere((w) => w.id == _selectedWallet!.id);
+        _selectedWallet = _wallets.firstWhere(
+          (w) => w.id == _selectedWallet!.id,
+        );
       }
     } else {
       _selectedWallet = null;
@@ -154,7 +157,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// رفع وثائق التوثيق KYC
-  Future<bool> submitKyc({required String frontBase64, required String backBase64}) async {
+  Future<bool> submitKyc({
+    required String frontBase64,
+    required String backBase64,
+  }) async {
     _isLoading = true;
     notifyListeners();
 
@@ -214,7 +220,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// تغيير كلمة المرور
-  Future<bool> changePassword({String? currentPassword, required String newPassword}) async {
+  Future<bool> changePassword({
+    String? currentPassword,
+    required String newPassword,
+  }) async {
     _isLoading = true;
     notifyListeners();
 

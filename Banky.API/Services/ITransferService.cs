@@ -26,5 +26,15 @@ namespace Banky.API.Services
         /// تنفيذ الدفع والشراء عبر نقطة بيع (POS)
         /// </summary>
         Task<(bool Success, string Message, TransactionResponseDto? Data)> PayToPosAsync(Guid senderId, PosPaymentDto dto);
+
+        /// <summary>
+        /// حساب قيمة المصارفة وسعر الصرف بين عملتين
+        /// </summary>
+        Task<(bool Success, string Message, ExchangeCalculationResultDto? Data)> CalculateExchangeAsync(string fromCurrency, string toCurrency, decimal amount);
+
+        /// <summary>
+        /// تنفيذ التحويل والمصارفة بين محافظ العميل الخاصة
+        /// </summary>
+        Task<(bool Success, string Message, TransactionResponseDto? Data)> ExchangeSelfAsync(Guid clientId, SelfExchangeDto dto);
     }
 }

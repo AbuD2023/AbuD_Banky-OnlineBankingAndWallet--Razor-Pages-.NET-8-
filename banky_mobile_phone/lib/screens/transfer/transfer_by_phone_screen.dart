@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
-import '../../models/wallet_model.dart';
 import '../../models/pos_model.dart';
+import '../../models/wallet_model.dart';
 import '../../services/api_service.dart';
+import '../../widgets/amount_input_field.dart';
+import '../../widgets/currency_dropdown.dart';
+import '../../widgets/custom_card.dart';
+import '../../widgets/fee_summary_card.dart';
+import '../../widgets/primary_button.dart';
+import '../../widgets/recipient_info_card.dart';
+import '../../widgets/success_receipt_dialog.dart';
 
 /// شاشة التحويل المالي لمشترك برقم الهاتف (Transfer By Phone Screen)
-/// تفحص المستلم وتطبق قواعد الخصوصية (إظهار الحروف الأولى فقط إذا كان خيار الإخفاء مفعل لدى المستلم)
+/// تتيح للعميل اختيار محفظة المصدر، فحص المستلم، حساب الرسوم والعمولة المقررة من الإدارة، وتأكيد التحويل
 class TransferByPhoneScreen extends StatefulWidget {
   const TransferByPhoneScreen({super.key});
 
@@ -15,6 +22,7 @@ class TransferByPhoneScreen extends StatefulWidget {
 }
 
 class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
@@ -24,7 +32,11 @@ class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
 
   bool _isCheckingRecipient = false;
   bool _isTransferring = false;
+  bool _isCalculatingFee = false;
   String? _lookupError;
+
+  double _calculatedFee = 0.00;
+  String? _feeDescription;
 
   @override
   void initState() {
@@ -43,7 +55,7 @@ class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
     super.dispose();
   }
 
-  /// التحقق من رقم هاتف المستلم وجلب اسمه وقواعد الخصوصية
+  /// التحقق من رقم هاتف المستلم
   Future<void> _checkRecipient() async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
@@ -62,33 +74,66 @@ class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
     final currency = _selectedWallet?.currencyCode ?? 'YER';
     final result = await ApiService.lookupRecipient(phone: phone, currencyCode: currency);
 
+    if (!mounted) return;
     setState(() => _isCheckingRecipient = false);
 
     if (result != null) {
-      setState(() => _recipientResult = result);
+      setState(() {
+        _recipientResult = result;
+        _feeDescription = result.feeDescription;
+      });
+      _calculateFee();
     } else {
       setState(() => _lookupError = 'رقم الهاتف غير مسجل في النظام أو الحساب غير موثق');
     }
   }
 
-  /// تنفيذ التحويل المالي
-  Future<void> _handleTransfer() async {
-    if (_recipientResult == null) {
-      await _checkRecipient();
-      if (_recipientResult == null) return;
-    }
-
-    final amount = double.tryParse(_amountController.text.trim());
+  /// احتساب الرسوم والعمولة المحددة من قبل مدير النظام لحظياً
+  Future<void> _calculateFee() async {
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال مبلغ تحويل صحيح')),
-      );
+      setState(() => _calculatedFee = 0.00);
       return;
     }
 
-    if (_selectedWallet == null || _selectedWallet!.balance < amount) {
+    setState(() => _isCalculatingFee = true);
+
+    final preview = await ApiService.calculateFeePreview(
+      operationType: 'TransferByPhone',
+      amount: amount,
+      currency: _selectedWallet?.currencyCode ?? 'YER',
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isCalculatingFee = false;
+      if (preview != null) {
+        _calculatedFee = (preview['feeAmount'] as num?)?.toDouble() ?? 0.00;
+        _feeDescription = preview['feeRuleDescription']?.toString();
+      }
+    });
+  }
+
+  /// تنفيذ التحويل المالي وتأكيد العملية
+  Future<void> _handleTransfer() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_recipientResult == null) {
+      await _checkRecipient();
+      if (!mounted) return;
+      if (_recipientResult == null) return;
+    }
+
+    final amount = double.parse(_amountController.text.trim());
+    final totalRequired = amount + _calculatedFee;
+
+    if (_selectedWallet == null || _selectedWallet!.balance < totalRequired) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('رصيد محفظتك غير كافٍ. رصيدك الحالي: ${_selectedWallet?.balance.toStringAsFixed(2)} ${_selectedWallet?.currencySymbol}')),
+        SnackBar(
+          content: Text('رصيد محفظتك غير كافٍ لتغطية المبلغ والرسوم (${totalRequired.toStringAsFixed(2)} ${_selectedWallet?.currencySymbol})'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -102,52 +147,23 @@ class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
       note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
     );
 
-    setState(() => _isTransferring = false);
-
     if (!mounted) return;
+    setState(() => _isTransferring = false);
 
     if (result['success'] == true) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await auth.refreshWallets();
+      if (!mounted) return;
 
-      showDialog(
+      SuccessReceiptDialog.show(
         context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'تم التحويل بنجاح!',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'تم تحويل مبلغ ${amount.toStringAsFixed(2)} ${_selectedWallet!.currencySymbol} إلى ${_recipientResult?.displayName}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pop(context);
-                },
-                child: const Text('تم'),
-              ),
-            ],
-          ),
-        ),
+        title: 'تم التحويل بنجاح!',
+        message: 'تم إرسال المبلغ بنجاح إلى ${_recipientResult?.displayName}',
+        amount: amount,
+        fee: _calculatedFee,
+        currencySymbol: _selectedWallet!.currencySymbol,
+        recipientName: _recipientResult?.displayName,
+        onDone: () => Navigator.pop(context),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -161,229 +177,130 @@ class _TransferByPhoneScreenState extends State<TransferByPhoneScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final auth = Provider.of<AuthProvider>(context);
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('تحويل لمشترك برقم الهاتف'),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // اختيار المحفظة المصدر
-              Text(
-                'اختر المحفظة والعملة المصدر',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. اختيار المحفظة والعملة المصدر
+                CurrencyDropdown(
+                  label: 'اختر المحفظة والعملة للتحويل منها',
+                  wallets: auth.wallets,
+                  selectedWallet: _selectedWallet,
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedWallet = val;
+                      _recipientResult = null;
+                    });
+                    _calculateFee();
+                  },
                 ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<WalletModel>(
-                    value: _selectedWallet,
-                    isExpanded: true,
-                    items: auth.wallets.map((w) {
-                      return DropdownMenuItem<WalletModel>(
-                        value: w,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${w.currencyNameAr} (${w.currencyCode})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${w.balance.toStringAsFixed(2)} ${w.currencySymbol}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedWallet = val;
-                        _recipientResult = null;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
-              // رقم هاتف المستلم
-              Text(
-                'رقم هاتف المستلم',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        hintText: '77XXXXXXX',
-                        prefixIcon: Icon(Icons.phone_outlined),
+                // 2. إدخال رقم هاتف المستلم والتحقق
+                const Text('رقم هاتف المستلم', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          hintText: '77XXXXXXX',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                        ),
+                        onChanged: (_) {
+                          if (_recipientResult != null) {
+                            setState(() => _recipientResult = null);
+                          }
+                        },
                       ),
-                      onChanged: (_) {
-                        if (_recipientResult != null) {
-                          setState(() => _recipientResult = null);
-                        }
-                      },
+                    ),
+                    const SizedBox(width: 10),
+                    PrimaryButton(
+                      label: 'تحقق',
+                      icon: Icons.search_rounded,
+                      isLoading: _isCheckingRecipient,
+                      onPressed: _checkRecipient,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // بطاقة نتيجة فحص المستلم
+                if (_recipientResult != null)
+                  RecipientInfoCard(
+                    title: _recipientResult!.displayName,
+                    phone: _recipientResult!.phone,
+                    isNameMasked: _recipientResult!.isNameMasked,
+                  )
+                else if (_lookupError != null)
+                  CustomCard(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_lookupError!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isCheckingRecipient ? null : _checkRecipient,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                    child: _isCheckingRecipient
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : const Text('تحقق'),
+                const SizedBox(height: 18),
+
+                // 3. إدخال مبلغ التحويل
+                AmountInputField(
+                  controller: _amountController,
+                  currencyCode: _selectedWallet?.currencyCode,
+                  currencySymbol: _selectedWallet?.currencySymbol,
+                  onChanged: (_) => _calculateFee(),
+                ),
+                const SizedBox(height: 16),
+
+                // 4. ملخص الرسوم والعمولة المحسوبة
+                if (amount > 0) ...[
+                  FeeSummaryCard(
+                    amount: amount,
+                    fee: _calculatedFee,
+                    currencySymbol: _selectedWallet?.currencySymbol ?? '',
+                    feeDescription: _feeDescription,
+                    isLoading: _isCalculatingFee,
                   ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-              const SizedBox(height: 12),
 
-              // نتيجة فحص المستلم وتطبيق الخصوصية
-              if (_recipientResult != null)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.account_circle, color: Colors.green, size: 36),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  _recipientResult!.displayName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                                ),
-                                if (_recipientResult!.isNameMasked)
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 6),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text('اسم مقنع بالرموز', style: TextStyle(fontSize: 10, color: Colors.blue)),
-                                  ),
-                              ],
-                            ),
-                            Text(
-                              'رقم الهاتف: ${_recipientResult!.phone}',
-                              style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else if (_lookupError != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(_lookupError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                      ),
-                    ],
+                // 5. بيان وملاحظات التحويل
+                TextFormField(
+                  controller: _noteController,
+                  decoration: const InputDecoration(
+                    labelText: 'البيان أو الملاحظة (اختياري)',
+                    hintText: 'سداد قيمة خدمات، إيجار، إلخ',
+                    prefixIcon: Icon(Icons.note_alt_outlined),
                   ),
                 ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 32),
 
-              // مبلغ التحويل
-              Text(
-                'المبلغ المراد تحويله (${_selectedWallet?.currencySymbol ?? ""})',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
+                // 6. زر تأكيد التحويل
+                PrimaryButton(
+                  label: 'تأكيد وتنفيذ التحويل المالي',
+                  icon: Icons.send_rounded,
+                  isLoading: _isTransferring,
+                  onPressed: _handleTransfer,
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  prefixIcon: const Icon(Icons.payments_outlined),
-                  suffixText: _selectedWallet?.currencyCode,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // بيان أو ملاحظات
-              Text(
-                'البيان أو الملاحظة (اختياري)',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _noteController,
-                decoration: const InputDecoration(
-                  hintText: 'سداد قيمة خدمات، إيجار، إلخ',
-                  prefixIcon: Icon(Icons.note_alt_outlined),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // زر تأكيد التحويل
-              ElevatedButton.icon(
-                onPressed: _isTransferring ? null : _handleTransfer,
-                icon: const Icon(Icons.send_rounded),
-                label: _isTransferring
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                      )
-                    : const Text('تأكيد وتنفيذ التحويل المالي'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

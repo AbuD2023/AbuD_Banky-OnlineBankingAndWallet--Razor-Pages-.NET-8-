@@ -1,15 +1,18 @@
 @model Banky.Web.Models.ClientDetailsModel
 @{
     ViewData["Title"] = $"تفاصيل العميل: {Model.Client.FullName}";
-    var apiBaseUrl = "http://localhost:5021";
+    var apiBaseUrl = "http://10.0.114.6:5021";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
         <a asp-action="Index" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa-solid fa-arrow-right me-1"></i> العودة لقائمة العملاء</a>
         <h4 class="fw-bold mb-0">@Model.Client.FullName</h4>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Client.Id" class="btn btn-primary">
+            <i class="fa-solid fa-user-pen me-1"></i> تعديل بيانات العميل
+        </a>
         <button type="button" class="btn btn-outline-warning" onclick="openResetPasswordModal('@Model.Client.Id', '@Model.Client.FullName')">
             <i class="fa-solid fa-key me-1"></i> إعادة تعيين كلمة المرور
         </button>
@@ -56,7 +59,7 @@
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">تاريخ التسجيل:</span>
-                    <span class="fw-bold">@Model.Client.CreatedAt.ToString("yyyy-MM-dd")</span>
+                    <span class="fw-bold">@Model.Client.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-muted">تسجيل الدخول بالبصمة:</span>
@@ -123,8 +126,110 @@
         }
     </div>
 
-    <!-- المحافظ المالية ونقاط البيع وسجل العمليات -->
+    <!-- الأجهزة والمحافظ المالية ونقاط البيع وسجل العمليات -->
     <div class="col-lg-8">
+        <!-- إدارة أجهزة العميل والتصريح بالدخول المتعدد -->
+        <div class="card bg-body rounded-4 p-4 shadow-sm mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="fa-solid fa-mobile-screen-button text-primary me-2"></i> أجهزة العميل وإدارة تسجيل الدخول</h5>
+                    <p class="text-muted small mb-0">يمكن للمسؤول الموافقة على دخول العميل من هاتف آخر وتحديد الجهاز الرئيسي</p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary">@Model.Devices.Count أجهزة مسجلة</span>
+            </div>
+
+            @if (Model.Devices == null || !Model.Devices.Any())
+            {
+                <div class="text-muted small py-3 text-center">لا توجد أجهزة مسجلة لهذا العميل حتى الآن.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>اسم الجهاز</th>
+                                <th>معرف الجهاز</th>
+                                <th>الصفة</th>
+                                <th>حالة الموافقة</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>الإجراءات الإدارية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dev in Model.Devices)
+                            {
+                                <tr>
+                                    <td class="fw-bold">
+                                        <i class="fa-solid fa-mobile-screen text-muted me-1"></i>
+                                        @(dev.DeviceName ?? "هاتف ذكي")
+                                    </td>
+                                    <td class="small font-monospace">@dev.DeviceId</td>
+                                    <td>
+                                        @if (dev.MainDevice)
+                                        {
+                                            <span class="badge bg-primary"><i class="fa-solid fa-star me-1"></i> جهاز رئيسي</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">جهاز إضافي</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (dev.IsApproved)
+                                        {
+                                            <span class="badge bg-success"><i class="fa-solid fa-check-circle me-1"></i> معتمد</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i> بانتظار الموافقة</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@dev.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            @if (!dev.IsApproved)
+                                            {
+                                                <form asp-action="ApproveDevice" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="deviceId" value="@dev.Id" />
+                                                    <input type="hidden" name="clientId" value="@Model.Client.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-success" title="الموافقة على تسجيل دخول هذا الهاتف">
+                                                        <i class="fa-solid fa-check"></i> موافقة
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            @if (!dev.MainDevice)
+                                            {
+                                                <form asp-action="SetMainDevice" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="deviceId" value="@dev.Id" />
+                                                    <input type="hidden" name="clientId" value="@Model.Client.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="تعيين كجهاز رئيسي">
+                                                        <i class="fa-solid fa-star"></i> تعيين كرئيسي
+                                                    </button>
+                                                </form>
+                                            }
+
+                                            <form asp-action="DeleteDevice" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الجهاز وفك ارتباطه بحساب العميل؟');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="deviceId" value="@dev.Id" />
+                                                <input type="hidden" name="clientId" value="@Model.Client.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف الجهاز">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
         <!-- المحافظ المالية -->
         <div class="card bg-body rounded-4 p-4 shadow-sm mb-4">
             <h5 class="fw-bold mb-3"><i class="fa-solid fa-wallet text-primary me-2"></i> المحافظ المالية للعميل</h5>

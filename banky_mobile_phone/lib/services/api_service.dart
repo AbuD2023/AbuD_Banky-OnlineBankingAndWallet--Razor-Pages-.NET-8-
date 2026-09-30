@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_constants.dart';
@@ -69,28 +70,29 @@ class ApiService {
         if (data['data'] != null && data['data']['token'] != null) {
           await saveToken(data['data']['token']);
         }
-        return {'success': true, 'message': data['message'], 'data': data['data']};
+        return {
+          'success': true,
+          'message': data['message'],
+          'data': data['data'],
+        };
       }
-      return {'success': false, 'message': data['message'] ?? 'فشل إنشاء الحساب'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'فشل إنشاء الحساب',
+      };
     } catch (e) {
       return {'success': false, 'message': 'تعذر الاتصال بالخادم: $e'};
     }
   }
 
   /// تسجيل الدخول
-  static Future<Map<String, dynamic>> login({
-    required String identifier,
-    required String password,
-  }) async {
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
     try {
       final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'identifier': identifier,
-          'password': password,
-        }),
+        body: jsonEncode({'identifier': identifier, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
@@ -98,9 +100,16 @@ class ApiService {
         if (data['data'] != null && data['data']['token'] != null) {
           await saveToken(data['data']['token']);
         }
-        return {'success': true, 'message': data['message'], 'data': data['data']};
+        return {
+          'success': true,
+          'message': data['message'],
+          'data': data['data'],
+        };
       }
-      return {'success': false, 'message': data['message'] ?? 'بيانات الدخول غير صحيحة'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'بيانات الدخول غير صحيحة',
+      };
     } catch (e) {
       return {'success': false, 'message': 'تعذر الاتصال بالخادم: $e'};
     }
@@ -143,7 +152,10 @@ class ApiService {
       );
 
       final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 200 && data['success'] == true, 'message': data['message'] ?? 'تم رفع الوثائق'};
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? 'تم رفع الوثائق',
+      };
     } catch (e) {
       return {'success': false, 'message': 'فشل رفع الوثائق: $e'};
     }
@@ -152,7 +164,9 @@ class ApiService {
   /// طلب استعادة كلمة المرور (نسيت كلمة المرور)
   static Future<Map<String, dynamic>> forgotPassword(String identifier) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.forgotPassword}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.forgotPassword}',
+      );
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -177,7 +191,9 @@ class ApiService {
     required String newPassword,
   }) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.resetPassword}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.resetPassword}',
+      );
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -189,7 +205,10 @@ class ApiService {
       );
 
       final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 200 && data['success'] == true, 'message': data['message'] ?? ''};
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? '',
+      };
     } catch (e) {
       return {'success': false, 'message': 'خطأ في الاتصال: $e'};
     }
@@ -201,7 +220,9 @@ class ApiService {
     required String newPassword,
   }) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.changePassword}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.changePassword}',
+      );
       final headers = await _getHeaders();
       final response = await http.post(
         url,
@@ -213,7 +234,10 @@ class ApiService {
       );
 
       final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 200 && data['success'] == true, 'message': data['message'] ?? ''};
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? '',
+      };
     } catch (e) {
       return {'success': false, 'message': 'خطأ في الاتصال: $e'};
     }
@@ -226,7 +250,9 @@ class ApiService {
     required bool isBiometricEnabled,
   }) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.updatePrivacy}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.updatePrivacy}',
+      );
       final headers = await _getHeaders();
       final response = await http.post(
         url,
@@ -252,7 +278,9 @@ class ApiService {
   /// توليد وتجديد الرقم البديل لنقاط البيع
   static Future<Map<String, dynamic>> regeneratePosAlias() async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.regeneratePosAlias}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.regeneratePosAlias}',
+      );
       final headers = await _getHeaders();
       final response = await http.post(url, headers: headers);
 
@@ -273,14 +301,18 @@ class ApiService {
   /// استرجاع محافظ العميل
   static Future<List<WalletModel>> getWallets() async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.getWallets}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.getWallets}',
+      );
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] is List) {
-          return (data['data'] as List).map((w) => WalletModel.fromJson(w)).toList();
+          return (data['data'] as List)
+              .map((w) => WalletModel.fromJson(w))
+              .toList();
         }
       }
       return [];
@@ -292,7 +324,9 @@ class ApiService {
   /// فتح محفظة جديدة بعملة معتمدة
   static Future<Map<String, dynamic>> createWallet(String currencyCode) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.createWallet}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.createWallet}',
+      );
       final headers = await _getHeaders();
       final response = await http.post(
         url,
@@ -304,7 +338,9 @@ class ApiService {
       return {
         'success': response.statusCode == 200 && data['success'] == true,
         'message': data['message'] ?? '',
-        'wallet': data['data'] != null ? WalletModel.fromJson(data['data']) : null,
+        'wallet': data['data'] != null
+            ? WalletModel.fromJson(data['data'])
+            : null,
       };
     } catch (e) {
       return {'success': false, 'message': 'خطأ في الاتصال: $e'};
@@ -314,14 +350,18 @@ class ApiService {
   /// استرجاع العملات المتاحة
   static Future<List<CurrencyModel>> getAvailableCurrencies() async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.availableCurrencies}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.availableCurrencies}',
+      );
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
-
+      log(response.body.toString());
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] is List) {
-          return (data['data'] as List).map((c) => CurrencyModel.fromJson(c)).toList();
+          return (data['data'] as List)
+              .map((c) => CurrencyModel.fromJson(c))
+              .toList();
         }
       }
       return [];
@@ -350,7 +390,10 @@ class ApiService {
       );
 
       final data = jsonDecode(response.body);
-      return {'success': response.statusCode == 200 && data['success'] == true, 'message': data['message'] ?? ''};
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? '',
+      };
     } catch (e) {
       return {'success': false, 'message': 'خطأ في الاتصال: $e'};
     }
@@ -366,7 +409,9 @@ class ApiService {
     required String currencyCode,
   }) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.lookupRecipient}?phone=$phone&currencyCode=$currencyCode');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.lookupRecipient}?phone=$phone&currencyCode=$currencyCode',
+      );
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
 
@@ -390,7 +435,9 @@ class ApiService {
     String? note,
   }) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.transferByPhone}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.transferByPhone}',
+      );
       final headers = await _getHeaders();
       final response = await http.post(
         url,
@@ -407,7 +454,9 @@ class ApiService {
       return {
         'success': response.statusCode == 200 && data['success'] == true,
         'message': data['message'] ?? '',
-        'transaction': data['data'] != null ? TransactionModel.fromJson(data['data']) : null,
+        'transaction': data['data'] != null
+            ? TransactionModel.fromJson(data['data'])
+            : null,
       };
     } catch (e) {
       return {'success': false, 'message': 'فشل تنفيذ التحويل: $e'};
@@ -417,7 +466,9 @@ class ApiService {
   /// الاستعلام عن نقطة بيع بواسطة الكود
   static Future<PosLookupResult?> lookupPos(String posCode) async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.lookupPos}?posCode=$posCode');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.lookupPos}?posCode=$posCode',
+      );
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
 
@@ -458,10 +509,98 @@ class ApiService {
       return {
         'success': response.statusCode == 200 && data['success'] == true,
         'message': data['message'] ?? '',
-        'transaction': data['data'] != null ? TransactionModel.fromJson(data['data']) : null,
+        'transaction': data['data'] != null
+            ? TransactionModel.fromJson(data['data'])
+            : null,
       };
     } catch (e) {
       return {'success': false, 'message': 'فشل الدفع: $e'};
+    }
+  }
+
+  /// حساب سعر الصرف والمبلغ المستلم قبل التحويل بين الحسابات
+  static Future<Map<String, dynamic>?> calculateExchange({
+    required String fromCurrency,
+    required String toCurrency,
+    required double amount,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.calculateExchange}?fromCurrency=$fromCurrency&toCurrency=$toCurrency&amount=$amount',
+      );
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return data['data'];
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// تنفيذ التحويل والمصارفة بين محافظ العميل الخاصة
+  static Future<Map<String, dynamic>> exchangeSelf({
+    required String fromCurrencyCode,
+    required String toCurrencyCode,
+    required double amount,
+    String? note,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.exchangeSelf}',
+      );
+      final headers = await _getHeaders();
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          'fromCurrencyCode': fromCurrencyCode,
+          'toCurrencyCode': toCurrencyCode,
+          'amount': amount,
+          'note': note,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      return {
+        'success': response.statusCode == 200 && data['success'] == true,
+        'message': data['message'] ?? '',
+        'transaction': data['data'] != null
+            ? TransactionModel.fromJson(data['data'])
+            : null,
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'فشل المصارفة والتحويل: $e'};
+    }
+  }
+
+  /// معاينة وحساب الرسوم والعمولة التقديرية لأي عملية مصرفية
+  static Future<Map<String, dynamic>?> calculateFeePreview({
+    required String operationType,
+    required double amount,
+    String currency = 'YER',
+  }) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.feePreview}?type=$operationType&amount=$amount&currency=$currency',
+      );
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return data['data'];
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -502,14 +641,18 @@ class ApiService {
   /// استرجاع نقاط البيع المملوكة للعميل
   static Future<List<PosModel>> getMyPosPoints() async {
     try {
-      final url = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.myPosPoints}');
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}${ApiConstants.myPosPoints}',
+      );
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] is List) {
-          return (data['data'] as List).map((p) => PosModel.fromJson(p)).toList();
+          return (data['data'] as List)
+              .map((p) => PosModel.fromJson(p))
+              .toList();
         }
       }
       return [];
@@ -539,7 +682,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] is List) {
-          return (data['data'] as List).map((t) => TransactionModel.fromJson(t)).toList();
+          return (data['data'] as List)
+              .map((t) => TransactionModel.fromJson(t))
+              .toList();
         }
       }
       return [];

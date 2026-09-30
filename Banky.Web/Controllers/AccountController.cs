@@ -59,21 +59,23 @@ namespace Banky.Web.Controllers
             }
 
             var authData = response.Data;
+            var role = authData.User.Role;
 
-            // التحقق من أن المستخدم يمتلك صلاحية مسؤول
-            if (authData.User.Role != "Admin")
+            // التحقق من أن المستخدم يمتلك صلاحية موظف أو مسؤول وليس عميل عادي
+            var allowedRoles = new[] { "Admin", "Teller", "TellerDeposit", "TellerWithdrawal", "KycOfficer", "CurrencyOfficer", "Auditor" };
+            if (!allowedRoles.Contains(role))
             {
-                ModelState.AddModelError(string.Empty, "هذا الحساب غير مصرح له بالدخول إلى لوحة التحكم الإدارية");
+                ModelState.AddModelError(string.Empty, "هذا الحساب غير مصرح له بالدخول إلى لوحة التحكم الإدارية أو الصندوق");
                 return View(model);
             }
 
-            // 2. إنشاء الجلسة في الويب وتخزين الـ JWT Token في الـ Claims
+            // 2. إنشاء الجلسة في الويب وتخزين الـ JWT Token والدور الحقيقي في الـ Claims
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, authData.User.Id.ToString()),
                 new Claim(ClaimTypes.Name, authData.User.FullName),
                 new Claim(ClaimTypes.Email, authData.User.Email),
-                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim(ClaimTypes.Role, role),
                 new Claim("jwt_token", authData.Token) // حفظ التوكن لإرساله مع كل طلب للـ API
             };
 
@@ -94,6 +96,20 @@ namespace Banky.Web.Controllers
                 return Redirect(returnUrl);
             }
 
+            // التوجيه التلقائي المخصص حسب دور الموظف:
+            if (role == "Teller" || role == "TellerDeposit" || role == "TellerWithdrawal")
+            {
+                return RedirectToAction("Index", "Teller");
+            }
+            else if (role == "KycOfficer")
+            {
+                return RedirectToAction("Index", "Kyc");
+            }
+            else if (role == "CurrencyOfficer")
+            {
+                return RedirectToAction("Index", "Currencies");
+            }
+
             return RedirectToAction("Index", "Dashboard");
         }
 
@@ -101,7 +117,7 @@ namespace Banky.Web.Controllers
         /// تسجيل الخروج من لوحة التحكم
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {

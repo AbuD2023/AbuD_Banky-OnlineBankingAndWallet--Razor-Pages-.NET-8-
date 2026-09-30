@@ -7,8 +7,10 @@ import '../../services/api_service.dart';
 import '../kyc/kyc_upload_screen.dart';
 import '../transfer/transfer_by_phone_screen.dart';
 import '../transfer/pay_pos_screen.dart';
+import '../transfer/self_exchange_screen.dart';
 import '../wallets/wallets_screen.dart';
 import '../pos/my_pos_screen.dart';
+import '../../widgets/quick_action_item.dart';
 
 /// الشاشة الرئيسية للتطبيق (Home Dashboard)
 /// تعرض بطاقات المحافظ بالعملات المختلفة، التحذير الدائم في حال عدم التوثيق، العمليات السريعة، وآخر الحركات
@@ -285,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: auth.wallets.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
                     itemBuilder: (ctx, index) {
                       final wallet = auth.wallets[index];
                       return _buildWalletCard(theme, wallet);
@@ -300,74 +302,91 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildActionButton(
-                    theme: theme,
-                    icon: Icons.send_rounded,
-                    label: 'تحويل لمشترك',
-                    color: Colors.blue,
-                    onTap: () {
-                      _executeWithKycCheck(() {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const TransferByPhoneScreen(),
-                          ),
-                        ).then((_) => _loadData());
-                      });
-                    },
-                  ),
-                  _buildActionButton(
-                    theme: theme,
-                    icon: Icons.qr_code_scanner_rounded,
-                    label: 'دفع لنقطة بيع',
-                    color: Colors.purple,
-                    onTap: () {
-                      _executeWithKycCheck(() {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PayPosScreen(),
-                          ),
-                        ).then((_) => _loadData());
-                      });
-                    },
-                  ),
-                  _buildActionButton(
-                    theme: theme,
-                    icon: Icons.add_circle_outline_rounded,
-                    label: 'إيداع وتغذية',
-                    color: Colors.teal,
-                    onTap: () {
-                      _executeWithKycCheck(() {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const WalletsScreen(),
-                          ),
-                        ).then((_) => _loadData());
-                      });
-                    },
-                  ),
-                  _buildActionButton(
-                    theme: theme,
-                    icon: Icons.storefront_rounded,
-                    label: 'نقاط البيع',
-                    color: Colors.orange,
-                    onTap: () {
-                      _executeWithKycCheck(() {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MyPosScreen(),
-                          ),
-                        ).then((_) => _loadData());
-                      });
-                    },
-                  ),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    QuickActionItem(
+                      icon: Icons.send_rounded,
+                      label: 'تحويل لمشترك',
+                      color: Colors.blue,
+                      onTap: () {
+                        _executeWithKycCheck(() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TransferByPhoneScreen(),
+                            ),
+                          ).then((_) => _loadData());
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    QuickActionItem(
+                      icon: Icons.swap_horiz_rounded,
+                      label: 'بين حساباتي',
+                      color: Colors.deepOrange,
+                      onTap: () {
+                        _executeWithKycCheck(() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SelfExchangeScreen(),
+                            ),
+                          ).then((_) => _loadData());
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    QuickActionItem(
+                      icon: Icons.qr_code_scanner_rounded,
+                      label: 'دفع لنقطة بيع',
+                      color: Colors.purple,
+                      onTap: () {
+                        _executeWithKycCheck(() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PayPosScreen(),
+                            ),
+                          ).then((_) => _loadData());
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    QuickActionItem(
+                      icon: Icons.add_circle_outline_rounded,
+                      label: 'إيداع وتغذية',
+                      color: Colors.teal,
+                      onTap: () {
+                        _executeWithKycCheck(() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const WalletsScreen(),
+                            ),
+                          ).then((_) => _loadData());
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    QuickActionItem(
+                      icon: Icons.storefront_rounded,
+                      label: 'نقاط البيع',
+                      color: Colors.orange,
+                      onTap: () {
+                        _executeWithKycCheck(() {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const MyPosScreen(),
+                            ),
+                          ).then((_) => _loadData());
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -425,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _recentTransactions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (ctx, index) {
                     final trx = _recentTransactions[index];
                     return _buildTransactionTile(theme, trx);
@@ -532,115 +551,84 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
 
-  /// زر خدمة مصرفية سريعة
-  Widget _buildActionButton({
-    required ThemeData theme,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
+/// عنصر الحركة المالية في السجل
+Widget _buildTransactionTile(ThemeData theme, TransactionModel trx) {
+  IconData icon;
+  Color iconColor;
+
+  if (trx.isIncoming) {
+    icon = Icons.arrow_downward_rounded;
+    iconColor = Colors.green;
+  } else {
+    icon = Icons.arrow_upward_rounded;
+    iconColor = Colors.red;
   }
 
-  /// عنصر الحركة المالية في السجل
-  Widget _buildTransactionTile(ThemeData theme, TransactionModel trx) {
-    IconData icon;
-    Color iconColor;
-
-    if (trx.isIncoming) {
-      icon = Icons.arrow_downward_rounded;
-      iconColor = Colors.green;
-    } else {
-      icon = Icons.arrow_upward_rounded;
-      iconColor = Colors.red;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: theme.cardTheme.color,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  trx.typeNameAr,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                Text(
-                  trx.isIncoming
-                      ? 'من: ${trx.senderDisplayName ?? "إيداع"}'
-                      : 'إلى: ${trx.receiverDisplayName ?? trx.posName ?? "تحويل"}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Icon(icon, color: iconColor, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${trx.isIncoming ? "+" : "-"}${trx.amount.toStringAsFixed(2)} ${trx.currencySymbol}',
-                style: TextStyle(
+                trx.typeNameAr,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: iconColor,
                 ),
               ),
-              if (trx.createdAt != null)
-                Text(
-                  '${trx.createdAt!.month}/${trx.createdAt!.day} ${trx.createdAt!.hour}:${trx.createdAt!.minute.toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: theme.colorScheme.onSurface.withOpacity(0.4),
-                  ),
+              Text(
+                trx.isIncoming
+                    ? 'من: ${trx.senderDisplayName ?? "إيداع"}'
+                    : 'إلى: ${trx.receiverDisplayName ?? trx.posName ?? "تحويل"}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
+              ),
             ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${trx.isIncoming ? "+" : "-"}${trx.amount.toStringAsFixed(2)} ${trx.currencySymbol}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: iconColor,
+              ),
+            ),
+            if (trx.createdAt != null)
+              Text(
+                '${trx.createdAt!.month}/${trx.createdAt!.day} ${trx.createdAt!.hour}:${trx.createdAt!.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                ),
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
 }

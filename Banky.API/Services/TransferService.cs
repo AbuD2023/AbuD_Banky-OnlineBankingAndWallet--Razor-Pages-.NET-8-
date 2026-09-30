@@ -55,13 +55,22 @@ namespace Banky.API.Services
 
             var hasWalletInCurrency = receiver.Wallets.Any(w => w.CurrencyCode == currencyCode.ToUpper() && w.IsActive);
 
+            // جلب إعداد الرسوم لعملية التحويل بين المشتركين
+            var feeRule = await GetFeeRuleAsync("TransferByPhone", currencyCode);
+            decimal estimatedFee = feeRule?.CalculateFee(1000m) ?? 0.00m; // تقدير افتراضي
+            string feeDesc = feeRule != null && feeRule.IsActive
+                ? (feeRule.FeeType == "Percentage" ? $"عمولة {feeRule.Percentage:0.##}%" : $"رسوم ثابتة {feeRule.FixedAmount:N2}")
+                : "معفاة من الرسوم";
+
             var response = new RecipientLookupResponseDto
             {
                 ClientId = receiver.Id,
                 DisplayName = displayName,
                 Phone = receiver.Phone,
                 IsNameMasked = receiver.HideFullName,
-                HasActiveWalletInCurrency = hasWalletInCurrency
+                HasActiveWalletInCurrency = hasWalletInCurrency,
+                EstimatedFee = estimatedFee,
+                FeeDescription = feeDesc
             };
 
             return (true, "تم العثور على المستلم", response);
@@ -85,6 +94,11 @@ namespace Banky.API.Services
 
             var merchantName = pos.Owner?.HideFullName == true ? pos.Owner.GetMaskedName() : (pos.Owner?.FullName ?? string.Empty);
 
+            var feeRule = await GetFeeRuleAsync("PosPayment", null);
+            string feeDesc = feeRule != null && feeRule.IsActive
+                ? (feeRule.FeeType == "Percentage" ? $"عمولة {feeRule.Percentage:0.##}%" : $"رسوم ثابتة {feeRule.FixedAmount:N2}")
+                : "خدمة دفع معفاة من الرسوم";
+
             var response = new PosLookupResponseDto
             {
                 PosId = pos.Id,
@@ -93,14 +107,16 @@ namespace Banky.API.Services
                 Category = pos.Category,
                 Address = pos.Address,
                 MerchantDisplayName = merchantName,
-                IsActive = pos.IsActive
+                IsActive = pos.IsActive,
+                EstimatedFee = feeRule?.CalculateFee(1000m) ?? 0.00m,
+                FeeDescription = feeDesc
             };
 
             return (true, "تم العثور على نقطة البيع", response);
         }
 
         /// <summary>
-        /// تنفيذ التحويل المالي لمشترك برقم الهاتف مع التحقق من الرصيد والتوثيق والخصم والإيداع اللحظي
+        /// تنفيذ التحويل المالي لمشترك برقم الهاتف مع التحقق من الرصيد والرسوم والتوثيق والخصم والإيداع اللحظي
         /// </summary>
         public async Task<(bool Success, string Message, TransactionResponseDto? Data)> TransferByPhoneAsync(Guid senderId, TransferByPhoneDto dto)
         {
@@ -123,16 +139,21 @@ namespace Banky.API.Services
 
             var currencyCode = dto.CurrencyCode.Trim().ToUpper();
 
-            // 2. التحقق من محفظة المرسل ورصيده
+            // 2. احتساب الرسوم المحددة من قبل الإدارة
+            var feeRule = await GetFeeRuleAsync("TransferByPhone", currencyCode);
+            decimal fee = feeRule?.CalculateFee(dto.Amount) ?? 0.00m;
+            decimal totalDebit = dto.Amount + fee;
+
+            // 3. التحقق من محفظة المرسل ورصيده (المبلغ + الرسوم)
             var senderWallet = sender.Wallets.FirstOrDefault(w => w.CurrencyCode == currencyCode && w.IsActive);
             if (senderWallet == null)
             {
                 return (false, $"ليس لديك محفظة نشطة بعملة ({currencyCode})", null);
             }
 
-            if (senderWallet.Balance < dto.Amount)
+            if (senderWallet.Balance < totalDebit)
             {
-                return (false, $"رصيدك غير كافٍ. رصيدك الحالي: {senderWallet.Balance:N2} {currencyCode} والمبلغ المطلوب: {dto.Amount:N2} {currencyCode}", null);
+                return (false, $"رصيدك غير كافٍ. المطلوب شامل الرسوم ({fee:N2}): {totalDebit:N2} {currencyCode} ورصيدك الحالي: {senderWallet.Balance:N2} {currencyCode}", null);
             }
 
             // 3. التحقق من حساب المستلم
@@ -171,8 +192,8 @@ namespace Banky.API.Services
                 await _context.Wallets.AddAsync(receiverWallet);
             }
 
-            // 5. تنفيذ الخصم والإيداع
-            senderWallet.Balance -= dto.Amount;
+            // 5. تنفيذ الخصم والإيداع (خصم المبلغ + الرسوم من المرسل، وإيداع المبلغ الصافي للمستلم)
+            senderWallet.Balance -= totalDebit;
             senderWallet.UpdatedAt = DateTime.UtcNow;
 
             receiverWallet.Balance += dto.Amount;
@@ -184,7 +205,7 @@ namespace Banky.API.Services
 
             var currency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == currencyCode);
 
-            // 7. تسجيل الحركة المالية في قاعدة البيانات
+            // 7. تسجيل الحركة المالية في قاعدة البيانات مع الرسوم والمبلغ الإجمالي
             var trx = new Transaction
             {
                 TransactionNumber = Transaction.GenerateTransactionNumber(),
@@ -193,8 +214,8 @@ namespace Banky.API.Services
                 ReceiverClientId = receiver.Id,
                 CurrencyCode = currencyCode,
                 Amount = dto.Amount,
-                Fee = 0.00m,
-                TotalAmount = dto.Amount,
+                Fee = fee,
+                TotalAmount = totalDebit,
                 Status = "Completed",
                 SenderDisplayName = senderDisplay,
                 SenderDisplayPhone = sender.Phone,
@@ -227,7 +248,7 @@ namespace Banky.API.Services
                 CreatedAt = trx.CreatedAt
             };
 
-            return (true, $"تم تحويل {dto.Amount:N2} {currency?.Symbol} بنجاح إلى {receiverDisplay}", response);
+            return (true, $"تم تحويل {dto.Amount:N2} {currency?.Symbol} بنجاح إلى {receiverDisplay} (الرسوم: {fee:N2} {currency?.Symbol})", response);
         }
 
         /// <summary>
@@ -254,19 +275,24 @@ namespace Banky.API.Services
 
             var currencyCode = dto.CurrencyCode.Trim().ToUpper();
 
-            // 2. التحقق من محفظة العميل ورصيده
+            // 2. احتساب رسوم المشتريات والدفع لنقاط البيع المحددة من الإدارة
+            var feeRule = await GetFeeRuleAsync("PosPayment", currencyCode);
+            decimal fee = feeRule?.CalculateFee(dto.Amount) ?? 0.00m;
+            decimal totalDebit = dto.Amount + fee;
+
+            // 3. التحقق من محفظة العميل ورصيده (المبلغ + الرسوم)
             var senderWallet = sender.Wallets.FirstOrDefault(w => w.CurrencyCode == currencyCode && w.IsActive);
             if (senderWallet == null)
             {
                 return (false, $"ليس لديك محفظة نشطة بعملة ({currencyCode})", null);
             }
 
-            if (senderWallet.Balance < dto.Amount)
+            if (senderWallet.Balance < totalDebit)
             {
-                return (false, $"رصيدك غير كافٍ. رصيدك الحالي: {senderWallet.Balance:N2} والمطلوب: {dto.Amount:N2}", null);
+                return (false, $"رصيدك غير كافٍ. المطلوب شامل الرسوم ({fee:N2}): {totalDebit:N2} {currencyCode} والمتاح: {senderWallet.Balance:N2} {currencyCode}", null);
             }
 
-            // 3. التحقق من نقطة البيع وصاحبها التاجر
+            // 4. التحقق من نقطة البيع وصاحبها التاجر
             var pos = await _context.PosPoints
                 .Include(p => p.Owner)
                 .ThenInclude(o => o!.Wallets)
@@ -279,7 +305,7 @@ namespace Banky.API.Services
 
             var merchant = pos.Owner;
 
-            // 4. جلب أو فتح محفظة للتاجر لاستقبال المبلغ
+            // 5. جلب أو فتح محفظة للتاجر لاستقبال المبلغ
             var merchantWallet = merchant.Wallets.FirstOrDefault(w => w.CurrencyCode == currencyCode && w.IsActive);
             if (merchantWallet == null)
             {
@@ -295,14 +321,14 @@ namespace Banky.API.Services
                 await _context.Wallets.AddAsync(merchantWallet);
             }
 
-            // 5. خصم المبلغ من العميل وإيداعه للتاجر
-            senderWallet.Balance -= dto.Amount;
+            // 6. خصم المبلغ الإجمالي من العميل وإيداع المبلغ للتاجر
+            senderWallet.Balance -= totalDebit;
             senderWallet.UpdatedAt = DateTime.UtcNow;
 
             merchantWallet.Balance += dto.Amount;
             merchantWallet.UpdatedAt = DateTime.UtcNow;
 
-            // 6. تطبيق ميزات الخصوصية:
+            // 7. تطبيق ميزات الخصوصية:
             // - إخفاء الاسم إن كان مفعل
             var senderDisplayName = sender.HideFullName ? sender.GetMaskedName() : sender.FullName;
             
@@ -323,7 +349,7 @@ namespace Banky.API.Services
 
             var currency = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == currencyCode);
 
-            // 7. تسجيل حركة الدفع لنقطة البيع
+            // 8. تسجيل حركة الدفع لنقطة البيع مع الرسوم والمبلغ الإجمالي
             var trx = new Transaction
             {
                 TransactionNumber = Transaction.GenerateTransactionNumber(),
@@ -333,8 +359,8 @@ namespace Banky.API.Services
                 PosPointId = pos.Id,
                 CurrencyCode = currencyCode,
                 Amount = dto.Amount,
-                Fee = 0.00m,
-                TotalAmount = dto.Amount,
+                Fee = fee,
+                TotalAmount = totalDebit,
                 Status = "Completed",
                 SenderDisplayName = senderDisplayName,
                 SenderDisplayPhone = senderDisplayPhone, // الرقم البديل أو الحقيقي وفق الخصوصية
@@ -368,7 +394,209 @@ namespace Banky.API.Services
                 CreatedAt = trx.CreatedAt
             };
 
-            return (true, $"تم دفع مبلغ {dto.Amount:N2} {currency?.Symbol} بنجاح لنقطة بيع ({pos.Name})", response);
+            return (true, $"تم دفع مبلغ {dto.Amount:N2} {currency?.Symbol} بنجاح لنقطة بيع ({pos.Name}) (الرسوم: {fee:N2} {currency?.Symbol})", response);
         }
+
+        /// <summary>
+        /// حساب قيمة المصارفة وسعر الصرف بين عملتين مع احتساب العمولة المحددة
+        /// </summary>
+        public async Task<(bool Success, string Message, ExchangeCalculationResultDto? Data)> CalculateExchangeAsync(string fromCurrency, string toCurrency, decimal amount)
+        {
+            var fromCode = fromCurrency.Trim().ToUpper();
+            var toCode = toCurrency.Trim().ToUpper();
+
+            if (fromCode == toCode)
+            {
+                return (false, "العملة المصدر هي نفس العملة الهدف", null);
+            }
+
+            var currFrom = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == fromCode && c.IsActive);
+            var currTo = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == toCode && c.IsActive);
+
+            if (currFrom == null || currTo == null)
+            {
+                return (false, "إحدى العملتين غير مدعومة أو غير نشطة", null);
+            }
+
+            if (currFrom.ExchangeRate <= 0 || currTo.ExchangeRate <= 0)
+            {
+                return (false, "سعر الصرف غير مضبوط في النظام", null);
+            }
+
+            // حساب المعامل: (amount / currFrom.ExchangeRate) * currTo.ExchangeRate
+            decimal effectiveRate = currTo.ExchangeRate / currFrom.ExchangeRate;
+            decimal targetAmount = Math.Round(amount * effectiveRate, 2);
+
+            // احتساب عمولة المصارفة
+            var feeRule = await GetFeeRuleAsync("SelfExchange", fromCode);
+            decimal fee = feeRule?.CalculateFee(amount) ?? 0.00m;
+            decimal totalRequired = amount + fee;
+
+            string feeDesc = feeRule != null && feeRule.IsActive
+                ? (feeRule.FeeType == "Percentage" ? $"عمولة صرف {feeRule.Percentage:0.##}%" : $"رسوم ثابتة {feeRule.FixedAmount:N2}")
+                : "معفاة من عمولة الصرف";
+
+            var result = new ExchangeCalculationResultDto
+            {
+                FromCurrencyCode = fromCode,
+                ToCurrencyCode = toCode,
+                SourceAmount = amount,
+                TargetAmount = targetAmount,
+                ExchangeRate = effectiveRate,
+                Fee = fee,
+                TotalSourceAmountWithFee = totalRequired,
+                FeeDescription = feeDesc
+            };
+
+            return (true, "تم حساب سعر الصرف بنجاح", result);
+        }
+
+        /// <summary>
+        /// تنفيذ التحويل والمصارفة بين محافظ العميل الخاصة مع اقتطاع العمولة
+        /// </summary>
+        public async Task<(bool Success, string Message, TransactionResponseDto? Data)> ExchangeSelfAsync(Guid clientId, SelfExchangeDto dto)
+        {
+            var client = await _context.Clients
+                .Include(c => c.Wallets)
+                .FirstOrDefaultAsync(c => c.Id == clientId);
+
+            if (client == null) return (false, "العميل غير موجود", null);
+
+            if (client.KycStatus != "Approved")
+            {
+                return (false, "لا يمكن التحويل والمصارفة لأن حسابك لم يتم توثيقه وقبوله بعد من قبل الإدارة", null);
+            }
+
+            if (client.IsBlocked)
+            {
+                return (false, "حسابك محظور من تنفيذ العمليات المالية", null);
+            }
+
+            var fromCode = dto.FromCurrencyCode.Trim().ToUpper();
+            var toCode = dto.ToCurrencyCode.Trim().ToUpper();
+
+            if (fromCode == toCode)
+            {
+                return (false, "لا يمكن التحويل لنفس العملة، يرجى اختيار عملتين مختلفتين", null);
+            }
+
+            // التحقق من العملات وسعر الصرف
+            var currFrom = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == fromCode && c.IsActive);
+            var currTo = await _context.Currencies.FirstOrDefaultAsync(c => c.Code == toCode && c.IsActive);
+
+            if (currFrom == null || currTo == null)
+            {
+                return (false, "إحدى العملتين المختارتين غير مفعلة في النظام", null);
+            }
+
+            // احتساب عمولة المصارفة
+            var feeRule = await GetFeeRuleAsync("SelfExchange", fromCode);
+            decimal fee = feeRule?.CalculateFee(dto.Amount) ?? 0.00m;
+            decimal totalDebit = dto.Amount + fee;
+
+            // التحقق من محفظة المصدر
+            var fromWallet = client.Wallets.FirstOrDefault(w => w.CurrencyCode == fromCode && w.IsActive);
+            if (fromWallet == null)
+            {
+                return (false, $"ليس لديك محفظة نشطة بعملة ({fromCode})", null);
+            }
+
+            if (fromWallet.Balance < totalDebit)
+            {
+                return (false, $"رصيدك في محفظة ({fromCode}) غير كافٍ. المطلوب شامل العمولة ({fee:N2}): {totalDebit:N2} والمتاح: {fromWallet.Balance:N2}", null);
+            }
+
+            // حساب المبلغ الناتج
+            decimal effectiveRate = currTo.ExchangeRate / currFrom.ExchangeRate;
+            decimal targetAmount = Math.Round(dto.Amount * effectiveRate, 2);
+
+            // جلب أو فتح محفظة الهدف للعميل
+            var toWallet = client.Wallets.FirstOrDefault(w => w.CurrencyCode == toCode && w.IsActive);
+            if (toWallet == null)
+            {
+                toWallet = new Wallet
+                {
+                    ClientId = client.Id,
+                    AccountNumber = Wallet.GenerateAccountNumber(),
+                    CurrencyCode = toCode,
+                    Balance = 0.00m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _context.Wallets.AddAsync(toWallet);
+            }
+
+            // خصم من محفظة المصدر (المبلغ + العمولة) وإيداع في محفظة الهدف
+            fromWallet.Balance -= totalDebit;
+            fromWallet.UpdatedAt = DateTime.UtcNow;
+
+            toWallet.Balance += targetAmount;
+            toWallet.UpdatedAt = DateTime.UtcNow;
+
+            // تسجيل الحركة المالية في قاعدة البيانات
+            var trx = new Transaction
+            {
+                TransactionNumber = Transaction.GenerateTransactionNumber(),
+                Type = "SelfExchange",
+                SenderClientId = client.Id,
+                ReceiverClientId = client.Id,
+                CurrencyCode = fromCode,
+                Amount = dto.Amount,
+                Fee = fee,
+                TotalAmount = totalDebit,
+                Status = "Completed",
+                SenderDisplayName = client.FullName,
+                SenderDisplayPhone = client.Phone,
+                ReceiverDisplayName = $"تحويل إلى محفظة {toCode} ({client.FullName})",
+                Note = dto.Note ?? $"مصارفة وتحويل من {fromCode} إلى {toCode} (المبلغ المستلم: {targetAmount:N2} {currTo.Symbol})",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Transactions.AddAsync(trx);
+            await _context.SaveChangesAsync();
+
+            var response = new TransactionResponseDto
+            {
+                Id = trx.Id,
+                TransactionNumber = trx.TransactionNumber,
+                Type = trx.Type,
+                TypeNameAr = "تحويل بين حساباتي",
+                CurrencyCode = trx.CurrencyCode,
+                CurrencySymbol = currFrom.Symbol,
+                Amount = trx.Amount,
+                Fee = trx.Fee,
+                TotalAmount = trx.TotalAmount,
+                Status = trx.Status,
+                StatusNameAr = "مكتملة",
+                SenderDisplayName = client.FullName,
+                SenderDisplayPhone = client.Phone,
+                ReceiverDisplayName = $"محفظة {toCode}",
+                Note = trx.Note,
+                IsIncoming = false,
+                CreatedAt = trx.CreatedAt
+            };
+
+            return (true, $"تمت المصارفة والتحويل بنجاح! تم خصم {totalDebit:N2} {currFrom.Symbol} (شامل عمولة {fee:N2}) وإيداع {targetAmount:N2} {currTo.Symbol} في محفظتك.", response);
+        }
+
+        #region دالة مساعدة لجلب إعدادات الرسوم
+
+        /// <summary>
+        /// جلب قاعدة الرسوم الفعالة لنوع عملية وعملة محددة
+        /// </summary>
+        private async Task<FeeSetting?> GetFeeRuleAsync(string operationType, string? currencyCode)
+        {
+            if (!string.IsNullOrWhiteSpace(currencyCode))
+            {
+                var specific = await _context.FeeSettings
+                    .FirstOrDefaultAsync(f => f.OperationType == operationType && f.CurrencyCode == currencyCode.ToUpper() && f.IsActive);
+                if (specific != null) return specific;
+            }
+
+            return await _context.FeeSettings
+                .FirstOrDefaultAsync(f => f.OperationType == operationType && (f.CurrencyCode == null || f.CurrencyCode == "") && f.IsActive);
+        }
+
+        #endregion
     }
 }

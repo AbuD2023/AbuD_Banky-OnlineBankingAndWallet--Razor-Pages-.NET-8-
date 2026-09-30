@@ -7,6 +7,7 @@ class ApiConstants {
   /// - في حال استخدام جهاز حقيقي متصل بنفس الشبكة استخدم IP جهازك مثل: http://192.168.1.50:5021
   /// - في حال تشغيل التطبيق على الويب أو سطح المكتب استخدم: http://localhost:5021
   static const String baseUrl = 'http://10.0.114.6:5021';
+  // static const String baseUrl = 'https://10.0.114.6:7205';
 
   // ==========================================
   // مسارات المصادقة والحسابات (Auth Endpoints)
@@ -36,6 +37,9 @@ class ApiConstants {
   static const String lookupPos = '/api/transfers/lookup-pos';
   static const String transferByPhone = '/api/transfers/by-phone';
   static const String payPos = '/api/transfers/pay-pos';
+  static const String calculateExchange = '/api/transfers/calculate-exchange';
+  static const String exchangeSelf = '/api/transfers/exchange-self';
+  static const String feePreview = '/api/admin/fees/preview';
 
   // ==========================================
   // مسارات نقاط البيع التابعة للعميل (My POS)

@@ -30,9 +30,15 @@ class PosModel {
       address: json['address'],
       category: json['category'],
       isActive: json['isActive'] ?? true,
-      totalReceivedAmount: (json['totalReceivedAmount'] is num) ? (json['totalReceivedAmount'] as num).toDouble() : 0.0,
-      totalTransactionsCount: json['totalTransactionsCount'] is int ? json['totalTransactionsCount'] : 0,
-      createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null,
+      totalReceivedAmount: (json['totalReceivedAmount'] is num)
+          ? (json['totalReceivedAmount'] as num).toDouble()
+          : 0.0,
+      totalTransactionsCount: json['totalTransactionsCount'] is int
+          ? json['totalTransactionsCount']
+          : 0,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'])
+          : null,
     );
   }
 }
@@ -44,6 +50,8 @@ class RecipientLookupResult {
   final String phone;
   final bool isNameMasked;
   final bool hasActiveWalletInCurrency;
+  final double estimatedFee;
+  final String? feeDescription;
 
   RecipientLookupResult({
     required this.clientId,
@@ -51,6 +59,8 @@ class RecipientLookupResult {
     required this.phone,
     required this.isNameMasked,
     required this.hasActiveWalletInCurrency,
+    this.estimatedFee = 0.0,
+    this.feeDescription,
   });
 
   factory RecipientLookupResult.fromJson(Map<String, dynamic> json) {
@@ -60,6 +70,8 @@ class RecipientLookupResult {
       phone: json['phone'] ?? '',
       isNameMasked: json['isNameMasked'] ?? false,
       hasActiveWalletInCurrency: json['hasActiveWalletInCurrency'] ?? false,
+      estimatedFee: (json['estimatedFee'] is num) ? (json['estimatedFee'] as num).toDouble() : 0.0,
+      feeDescription: json['feeDescription'],
     );
   }
 }
@@ -73,6 +85,8 @@ class PosLookupResult {
   final String? address;
   final String merchantDisplayName;
   final bool isActive;
+  final double estimatedFee;
+  final String? feeDescription;
 
   PosLookupResult({
     required this.posId,
@@ -82,6 +96,8 @@ class PosLookupResult {
     this.address,
     required this.merchantDisplayName,
     required this.isActive,
+    this.estimatedFee = 0.0,
+    this.feeDescription,
   });
 
   factory PosLookupResult.fromJson(Map<String, dynamic> json) {
@@ -93,6 +109,8 @@ class PosLookupResult {
       address: json['address'],
       merchantDisplayName: json['merchantDisplayName'] ?? '',
       isActive: json['isActive'] ?? true,
+      estimatedFee: (json['estimatedFee'] is num) ? (json['estimatedFee'] as num).toDouble() : 0.0,
+      feeDescription: json['feeDescription'],
     );
   }
 }

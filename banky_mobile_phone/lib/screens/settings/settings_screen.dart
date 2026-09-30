@@ -45,7 +45,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (mounted && success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحديث إعدادات الخصوصية والأمان بنجاح'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('تم تحديث إعدادات الخصوصية والأمان بنجاح'),
+          backgroundColor: Colors.green,
+        ),
       );
     }
   }
@@ -64,7 +67,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(Icons.lock_reset_rounded, color: Colors.blue),
             SizedBox(width: 8),
-            Text('تغيير كلمة المرور', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            Text(
+              'تغيير كلمة المرور',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -74,30 +80,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextField(
                 controller: currentPassController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'كلمة المرور الحالية'),
+                decoration: const InputDecoration(
+                  labelText: 'كلمة المرور الحالية',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: newPassController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'كلمة المرور الجديدة'),
+                decoration: const InputDecoration(
+                  labelText: 'كلمة المرور الجديدة',
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: confirmPassController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'تأكيد كلمة المرور الجديدة'),
+                decoration: const InputDecoration(
+                  labelText: 'تأكيد كلمة المرور الجديدة',
+                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              if (newPassController.text.length < 6 || newPassController.text != confirmPassController.text) {
+              if (newPassController.text.length < 6 ||
+                  newPassController.text != confirmPassController.text) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('كلمة المرور غير متطابقة أو أقل من 6 أحرف')),
+                  const SnackBar(
+                    content: Text('كلمة المرور غير متطابقة أو أقل من 6 أحرف'),
+                  ),
                 );
                 return;
               }
@@ -112,11 +130,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (mounted) {
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تم تغيير كلمة المرور بنجاح'), backgroundColor: Colors.green),
+                    const SnackBar(
+                      content: Text('تم تغيير كلمة المرور بنجاح'),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(auth.errorMessage ?? 'فشل التغيير'), backgroundColor: Colors.red),
+                    SnackBar(
+                      content: Text(auth.errorMessage ?? 'فشل التغيير'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
@@ -136,7 +160,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('اختيار مظهر التطبيق', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+        title: const Text(
+          'اختيار مظهر التطبيق',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -181,9 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = auth.user;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('الإعدادات والخصوصية'),
-      ),
+      appBar: AppBar(title: const Text('الإعدادات والخصوصية')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
@@ -199,35 +224,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 CircleAvatar(
                   radius: 30,
                   backgroundColor: theme.primaryColor.withOpacity(0.15),
-                  child: Icon(Icons.person_rounded, size: 34, color: theme.primaryColor),
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 34,
+                    color: theme.primaryColor,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user?.fullName ?? 'العميل', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(user?.phone ?? '', style: const TextStyle(color: Colors.grey, fontSize: 13, fontFamily: 'monospace')),
+                      Text(
+                        user?.fullName ?? 'العميل',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        user?.phone ?? '',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           if (user?.isApproved == true)
-                            const Badge(label: Text('موثق'), backgroundColor: Colors.green)
+                            const Badge(
+                              label: Text('موثق'),
+                              backgroundColor: Colors.green,
+                            )
                           else if (user?.isPendingApproval == true)
-                            const Badge(label: Text('قيد المراجعة'), backgroundColor: Colors.amber)
+                            const Badge(
+                              label: Text('قيد المراجعة'),
+                              backgroundColor: Colors.amber,
+                            )
                           else
-                            const Badge(label: Text('غير موثق'), backgroundColor: Colors.red),
+                            const Badge(
+                              label: Text('غير موثق'),
+                              backgroundColor: Colors.red,
+                            ),
                         ],
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.verified_user_outlined, color: Colors.blue),
+                  icon: const Icon(
+                    Icons.verified_user_outlined,
+                    color: Colors.blue,
+                  ),
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const KycUploadScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const KycUploadScreen(),
+                      ),
                     );
                   },
                   tooltip: 'وثائق التوثيق KYC',
@@ -238,7 +294,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // 2. قسم الخصوصية
-          const Text('إعدادات الخصوصية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue)),
+          const Text(
+            'إعدادات الخصوصية',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.blue,
+            ),
+          ),
           const SizedBox(height: 8),
 
           Container(
@@ -249,7 +312,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('إخفاء الاسم بالرموز والحروف الأولى', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  title: const Text(
+                    'إخفاء الاسم بالرموز والحروف الأولى',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   subtitle: const Text(
                     'عند تفعيلها يظهر للطرف الآخر أول حرف من اسمك الرباعي فقط (مثال: أ.م.ع.ص) عند البحث والتحويل.',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -262,7 +328,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
-                  title: const Text('إخفاء رقم الهاتف عند الدفع لنقطة بيع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  title: const Text(
+                    'إخفاء رقم الهاتف عند الدفع لنقطة بيع',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   subtitle: const Text(
                     'عند الشراء من متجر أو نقطة بيع، يظهر للتاجر رقمك البديل المشفر بدلاً من رقم هاتفك الحقيقي.',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -276,15 +345,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (user?.posAliasPhone != null) ...[
                   const Divider(height: 1),
                   ListTile(
-                    title: const Text('الرقم البديل الحالي لنقاط البيع', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: Text(user!.posAliasPhone!, style: const TextStyle(fontFamily: 'monospace', color: Colors.blue, fontWeight: FontWeight.bold)),
+                    title: const Text(
+                      'الرقم البديل الحالي لنقاط البيع',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      user!.posAliasPhone!,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     trailing: TextButton.icon(
                       onPressed: () async {
                         final newAlias = await auth.regeneratePosAlias();
                         if (mounted && newAlias != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('تم توليد رقم بديل جديد: $newAlias'), backgroundColor: Colors.green),
+                          if(context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'تم توليد رقم بديل جديد: $newAlias',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
                           );
+                          }
                         }
                       },
                       icon: const Icon(Icons.refresh, size: 16),
@@ -298,7 +387,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
 
           // 3. قسم الأمان والمظهر
-          const Text('الأمان والمظهر العام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue)),
+          const Text(
+            'الأمان والمظهر العام',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.blue,
+            ),
+          ),
           const SizedBox(height: 8),
 
           Container(
@@ -309,8 +405,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('تسجيل الدخول ببصمة الإصبع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: const Text('تفعيل الدخول البيومتري السريع للتطبيق', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  title: const Text(
+                    'تسجيل الدخول ببصمة الإصبع',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'تفعيل الدخول البيومتري السريع للتطبيق',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   value: _isBiometric,
                   onChanged: (val) {
                     setState(() => _isBiometric = val);
@@ -320,23 +422,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.key_rounded, color: Colors.blue),
-                  title: const Text('تغيير كلمة المرور', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                  title: const Text(
+                    'تغيير كلمة المرور',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                  ),
                   onTap: _openChangePasswordDialog,
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.palette_outlined, color: Colors.purple),
-                  title: const Text('المظهر والسمات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  leading: const Icon(
+                    Icons.palette_outlined,
+                    color: Colors.purple,
+                  ),
+                  title: const Text(
+                    'المظهر والسمات',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
                   subtitle: Text(
                     themeProvider.themeMode == ThemeMode.light
                         ? 'الوضع الفاتح'
                         : themeProvider.themeMode == ThemeMode.dark
-                            ? 'الوضع الداكن'
-                            : 'تلقائي (حسب الجهاز)',
+                        ? 'الوضع الداكن'
+                        : 'تلقائي (حسب الجهاز)',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                  ),
                   onTap: _openThemeSelector,
                 ),
               ],
@@ -348,7 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ElevatedButton.icon(
             onPressed: () async {
               await auth.logout();
-              if (mounted) {
+              if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (_) => const LoginScreen()),

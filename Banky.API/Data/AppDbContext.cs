@@ -47,6 +47,16 @@ namespace Banky.API.Data
         public DbSet<Device> Devices => Set<Device>();
 
         /// <summary>
+        /// جدول سجل الأنشطة والتدقيق للإدارة
+        /// </summary>
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+        /// <summary>
+        /// جدول إعدادات الرسوم والعمولات المصرفية لمدير النظام
+        /// </summary>
+        public DbSet<FeeSetting> FeeSettings => Set<FeeSetting>();
+
+        /// <summary>
         /// تكوين العلاقات والفهارس وقواعد البيانات عبر Fluent API
         /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -125,6 +135,12 @@ namespace Banky.API.Data
                       .WithMany(c => c.Devices)
                       .HasForeignKey(d => d.ClientId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // 7. إعدادات جدول الرسوم والعمولات (FeeSettings)
+            modelBuilder.Entity<FeeSetting>(entity =>
+            {
+                entity.HasIndex(f => new { f.OperationType, f.CurrencyCode });
             });
         }
     }

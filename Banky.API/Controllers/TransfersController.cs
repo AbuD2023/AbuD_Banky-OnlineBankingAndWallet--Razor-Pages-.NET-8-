@@ -110,6 +110,49 @@ namespace Banky.API.Controllers
             return Ok(new { success = true, message = result.Message, data = result.Data });
         }
 
+        /// <summary>
+        /// حساب سعر الصرف والمبلغ المستلم قبل تأكيد التحويل بين الحسابات
+        /// </summary>
+        [HttpGet("calculate-exchange")]
+        public async Task<IActionResult> CalculateExchange([FromQuery] string fromCurrency, [FromQuery] string toCurrency, [FromQuery] decimal amount)
+        {
+            if (amount <= 0)
+            {
+                return BadRequest(new { success = false, message = "المبلغ يجب أن يكون أكبر من الصفر" });
+            }
+
+            var result = await _transferService.CalculateExchangeAsync(fromCurrency, toCurrency, amount);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new { success = true, message = result.Message, data = result.Data });
+        }
+
+        /// <summary>
+        /// تنفيذ التحويل والمصارفة بين محافظ العميل الشخصية
+        /// </summary>
+        [HttpPost("exchange-self")]
+        public async Task<IActionResult> ExchangeSelf([FromBody] SelfExchangeDto dto)
+        {
+            var clientId = GetCurrentClientId();
+            if (clientId == null) return Unauthorized(new { success = false, message = "غير مصرح" });
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { success = false, message = "بيانات التحويل غير مكتملة", errors = ModelState });
+            }
+
+            var result = await _transferService.ExchangeSelfAsync(clientId.Value, dto);
+            if (!result.Success)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            return Ok(new { success = true, message = result.Message, data = result.Data });
+        }
+
         #region دالة مساعدة
 
         private Guid? GetCurrentClientId()

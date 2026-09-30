@@ -178,10 +178,16 @@ namespace Banky.API.Services
                 .Select(w => w.CurrencyCode)
                 .ToListAsync();
 
-            var available = await _context.Currencies
-                .Where(c => c.IsActive && !existingCurrencyCodes.Contains(c.Code))
+            var existingSet = new HashSet<string>(existingCurrencyCodes, StringComparer.OrdinalIgnoreCase);
+
+            var allActiveCurrencies = await _context.Currencies
+                .Where(c => c.IsActive)
                 .OrderBy(c => c.Id)
                 .ToListAsync();
+
+            var available = allActiveCurrencies
+                .Where(c => !existingSet.Contains(c.Code))
+                .ToList();
 
             return available.Select(c => new CurrencyResponseDto
             {

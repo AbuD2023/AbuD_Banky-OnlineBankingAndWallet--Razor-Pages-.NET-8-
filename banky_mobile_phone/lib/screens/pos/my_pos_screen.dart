@@ -249,7 +249,7 @@ class _MyPosScreenState extends State<MyPosScreen> {
             : ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: _posList.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (ctx, index) {
                   final pos = _posList[index];
                   return Container(

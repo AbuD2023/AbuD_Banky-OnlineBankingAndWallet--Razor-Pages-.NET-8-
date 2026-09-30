@@ -19,6 +19,12 @@ namespace Banky.API.DTOs
         public string? SenderDisplayName { get; set; }
         public string? SenderDisplayPhone { get; set; }
         public string? ReceiverDisplayName { get; set; }
+        public Guid? SenderClientId { get; set; }
+        public string? SenderRealFullName { get; set; }
+        public string? SenderRealPhone { get; set; }
+        public Guid? ReceiverClientId { get; set; }
+        public string? ReceiverRealFullName { get; set; }
+        public string? ReceiverRealPhone { get; set; }
         public string? PosName { get; set; }
         public string? Note { get; set; }
         public bool IsIncoming { get; set; }

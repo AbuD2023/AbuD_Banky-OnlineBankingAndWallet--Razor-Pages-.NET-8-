@@ -51,6 +51,32 @@ namespace Banky.API.Entities
         public bool MainDevice { get; set; } = false;
 
         /// <summary>
+        /// هل تم قبول والموافقة على الجهاز من قبل الإدارة
+        /// </summary>
+        [Column("is_approved")]
+        public bool IsApproved { get; set; } = true;
+
+        /// <summary>
+        /// اسم أو معرف الموظف/المسؤول الذي وافق على الجهاز
+        /// </summary>
+        [MaxLength(255)]
+        [Column("approved_by")]
+        public string? ApprovedBy { get; set; }
+
+        /// <summary>
+        /// تاريخ وتوقيت الموافقة على الجهاز
+        /// </summary>
+        [Column("approved_at")]
+        public DateTime? ApprovedAt { get; set; }
+
+        /// <summary>
+        /// عنوان الـ IP لآخر تسجيل دخول من هذا الجهاز
+        /// </summary>
+        [MaxLength(50)]
+        [Column("ip_address")]
+        public string? IpAddress { get; set; }
+
+        /// <summary>
         /// تاريخ تسجيل الجهاز لأول مرة
         /// </summary>
         [Column("created_at")]

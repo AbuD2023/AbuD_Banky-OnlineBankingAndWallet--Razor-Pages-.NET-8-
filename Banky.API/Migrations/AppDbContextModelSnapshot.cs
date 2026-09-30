@@ -17,10 +17,70 @@ namespace Banky.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "8.0.31")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Banky.API.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("action_type");
+
+                    b.Property<Guid?>("AdminId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("admin_id");
+
+                    b.Property<string>("AdminName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("admin_name");
+
+                    b.Property<string>("AdminRole")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("admin_role");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("details");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("entity_name");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("ip_address");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("audit_logs");
+                });
 
             modelBuilder.Entity("Banky.API.Entities.Client", b =>
                 {
@@ -213,6 +273,15 @@ namespace Banky.API.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("approved_at");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("approved_by");
+
                     b.Property<Guid?>("ClientId")
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("client_id");
@@ -236,6 +305,15 @@ namespace Banky.API.Migrations
                         .HasColumnType("nvarchar(1000)")
                         .HasColumnName("fcm_token");
 
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_approved");
+
                     b.Property<bool>("MainDevice")
                         .HasColumnType("bit")
                         .HasColumnName("main_device");
@@ -249,6 +327,79 @@ namespace Banky.API.Migrations
                     b.HasIndex("ClientId");
 
                     b.ToTable("devices");
+                });
+
+            modelBuilder.Entity("Banky.API.Entities.FeeSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("currency_code");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("FeeType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("fee_type");
+
+                    b.Property<decimal>("FixedAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("fixed_amount");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("MaxFee")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("max_fee");
+
+                    b.Property<decimal>("MinFee")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("min_fee");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("name_ar");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("operation_type");
+
+                    b.Property<decimal>("Percentage")
+                        .HasColumnType("decimal(8,4)")
+                        .HasColumnName("percentage");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationType", "CurrencyCode");
+
+                    b.ToTable("fee_settings");
                 });
 
             modelBuilder.Entity("Banky.API.Entities.PosPoint", b =>

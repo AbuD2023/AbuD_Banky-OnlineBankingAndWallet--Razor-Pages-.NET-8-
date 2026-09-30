@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../core/auth_provider.dart';
-import '../../core/api_constants.dart';
 
 /// شاشة رفع وتوثيق البطاقة الشخصية (KYC Upload Screen)
 /// تتيح التقاط أو اختيار صورتي الوجه الأمامي والخلفي لبطاقة الهوية وإرسالها للمراجعة
