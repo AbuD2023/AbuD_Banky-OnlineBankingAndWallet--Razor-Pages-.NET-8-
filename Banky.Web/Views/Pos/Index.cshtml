@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h5 class="fw-bold mb-1"><i class="fa-solid fa-store text-primary me-2"></i> شبكة نقاط البيع والمتاجر المسجلة</h5>
-            <p class="text-muted small mb-0">متابعة كافة نقاط البيع المنشأة بواسطة العملاء والتجار وحجم مبيعاتها المسجلة</p>
+            <p class="text-muted small mb-0">انقر على أي صف لعرض تفاصيل نقطة البيع والتاجر المالك بالتفصيل الممل</p>
         </div>
         <div class="badge bg-info text-dark fs-6 px-3 py-2 rounded-pill">
             <i class="fa-solid fa-shop me-1"></i> @Model.Count نقطة بيع
@@ -36,21 +36,24 @@
                         <th>إجمالي المبيعات</th>
                         <th>عدد العمليات</th>
                         <th>الحالة</th>
+                        <th>التفاصيل</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var pos in Model)
                     {
-                        <tr>
-                            <td class="fw-bold">@pos.Name</td>
+                        <tr style="cursor: pointer;" onclick="openPosModal('@pos.Name', '@pos.PosCode', '@(pos.Category ?? "---")', '@(pos.Address ?? "---")', '@pos.TotalSalesAmount.ToString("N2")', '@pos.TotalSalesCount', '@(pos.IsActive ? "نشطة" : "معطلة")', '@pos.MerchantName', '@pos.MerchantPhone', '@(pos.MerchantEmail ?? "")', '@(pos.MerchantKycStatus ?? "")', '@pos.ClientId', '@pos.CreatedAt.ToString("yyyy-MM-dd HH:mm")')">
+                            <td class="fw-bold text-primary">
+                                <i class="fa-solid fa-shop text-muted me-1"></i> @pos.Name
+                            </td>
                             <td class="font-monospace text-primary fw-bold">@pos.PosCode</td>
                             <td>
-                                <a asp-controller="Clients" asp-action="Details" asp-route-id="@pos.ClientId" class="text-decoration-none">
+                                <a asp-controller="Clients" asp-action="Details" asp-route-id="@pos.ClientId" class="text-decoration-none fw-bold" onclick="event.stopPropagation();">
                                     @pos.MerchantName
                                 </a>
                             </td>
-                            <td dir="ltr" class="text-end">@pos.MerchantPhone</td>
-                            <td><span class="badge bg-secondary-subtle text-secondary">@pos.Category</span></td>
+                            <td dir="ltr" class="text-end font-monospace">@pos.MerchantPhone</td>
+                            <td><span class="badge bg-secondary-subtle text-secondary-emphasis">@pos.Category</span></td>
                             <td class="small text-muted">@pos.Address</td>
                             <td class="fw-bold text-success">@pos.TotalSalesAmount.ToString("N2")</td>
                             <td class="small">@pos.TotalSalesCount عملية</td>
@@ -64,6 +67,11 @@
                                     <span class="badge bg-danger">معطلة</span>
                                 }
                             </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="event.stopPropagation(); openPosModal('@pos.Name', '@pos.PosCode', '@(pos.Category ?? "---")', '@(pos.Address ?? "---")', '@pos.TotalSalesAmount.ToString("N2")', '@pos.TotalSalesCount', '@(pos.IsActive ? "نشطة" : "معطلة")', '@pos.MerchantName', '@pos.MerchantPhone', '@(pos.MerchantEmail ?? "")', '@(pos.MerchantKycStatus ?? "")', '@pos.ClientId', '@pos.CreatedAt.ToString("yyyy-MM-dd HH:mm")')">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -71,3 +79,106 @@
         </div>
     }
 </div>
+
+<!-- Modal تفاصيل نقطة البيع ومعلومات التاجر المالك -->
+<div class="modal fade" id="posDetailModal" tabindex="-1" aria-labelledby="posDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-info-subtle">
+                <h5 class="modal-title fw-bold" id="posDetailModalLabel">
+                    <i class="fa-solid fa-store me-2"></i> تفاصيل نقطة البيع والتاجر المالك
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- بطاقة بيانات نقطة البيع -->
+                <div class="card p-3 bg-light rounded-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-cash-register me-2"></i> بيانات المتجر ونقطة البيع</h6>
+                        <span class="badge bg-primary font-monospace fs-6 px-3 py-1" id="modalPosCode"></span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">اسم المتجر / النقطة:</span>
+                            <span class="fw-bold fs-6" id="modalPosName"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">نشاط المتجر والتصنيف:</span>
+                            <span class="fw-semibold" id="modalPosCategory"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">العنوان والموقع:</span>
+                            <span class="fw-semibold text-muted" id="modalPosAddress"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">تاريخ الإنشاء:</span>
+                            <span class="small" id="modalPosCreatedAt"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">إجمالي المبيعات المحصلة:</span>
+                            <span class="fw-bold text-success fs-5" id="modalPosSalesAmount"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">عدد عمليات الشراء:</span>
+                            <span class="fw-bold fs-6" id="modalPosSalesCount"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة بيانات التاجر المالك -->
+                <div class="card p-3 bg-light rounded-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-primary mb-0"><i class="fa-solid fa-user-tie me-2"></i> بيانات التاجر المالك</h6>
+                        <a id="modalMerchantProfileLink" href="#" class="btn btn-sm btn-outline-primary">
+                            <i class="fa-solid fa-external-link me-1"></i> فتح ملف العميل الكامل
+                        </a>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">الاسم الرباعي الكامل:</span>
+                            <span class="fw-bold fs-6 text-primary" id="modalMerchantName"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">رقم الهاتف:</span>
+                            <span class="fw-bold font-monospace" dir="ltr" id="modalMerchantPhone"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">البريد الإلكتروني:</span>
+                            <span class="fw-bold font-monospace" id="modalMerchantEmail"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="small text-muted d-block">حالة توثيق الهوية (KYC):</span>
+                            <span class="badge bg-success" id="modalMerchantKyc"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openPosModal(name, code, category, address, salesAmt, salesCnt, status, mName, mPhone, mEmail, mKyc, clientId, createdAt) {
+            document.getElementById('modalPosName').textContent = name;
+            document.getElementById('modalPosCode').textContent = code;
+            document.getElementById('modalPosCategory').textContent = category;
+            document.getElementById('modalPosAddress').textContent = address;
+            document.getElementById('modalPosSalesAmount').textContent = salesAmt;
+            document.getElementById('modalPosSalesCount').textContent = salesCnt + ' عملية';
+            document.getElementById('modalPosCreatedAt').textContent = createdAt;
+
+            document.getElementById('modalMerchantName').textContent = mName;
+            document.getElementById('modalMerchantPhone').textContent = mPhone;
+            document.getElementById('modalMerchantEmail').textContent = mEmail || '---';
+            document.getElementById('modalMerchantKyc').textContent = mKyc || 'Approved';
+
+            document.getElementById('modalMerchantProfileLink').href = '/Clients/Details/' + clientId;
+
+            new bootstrap.Modal(document.getElementById('posDetailModal')).show();
+        }
+    </script>
+}

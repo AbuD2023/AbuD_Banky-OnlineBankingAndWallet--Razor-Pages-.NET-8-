@@ -1,0 +1,85 @@
+@model List<Banky.Web.Models.AuditLogModel>
+@{
+    ViewData["Title"] = "سجل التدقيق والأنشطة الإدارية";
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-clipboard-list text-primary me-2"></i> سجل الأنشطة والتدقيق للإدارة</h5>
+            <p class="text-muted small mb-0">تتبع كامل لجميع العمليات الإدارية المنفذة في النظام ومن قام بها بالتفصيل والوقت</p>
+        </div>
+        <div class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+            <i class="fa-solid fa-clock-rotate-left me-1"></i> @Model.Count نشاط مسجل
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-list-check fs-1 mb-2"></i>
+            <p class="mb-0">لا توجد أنشطة إدارية مسجلة حتى الآن</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>المسؤول / الموظف</th>
+                        <th>الدور</th>
+                        <th>نوع الإجراء</th>
+                        <th>الكيان المستهدف</th>
+                        <th>التفاصيل والبيان</th>
+                        <th>عنوان الـ IP</th>
+                        <th>التاريخ والتوقيت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold text-primary">
+                                <i class="fa-solid fa-user-shield text-muted me-1"></i> @log.AdminName
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">@log.AdminRole</span>
+                            </td>
+                            <td>
+                                @switch (log.ActionType)
+                                {
+                                    case "ApproveKyc":
+                                        <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check me-1"></i> قبول توثيق</span>
+                                        break;
+                                    case "RejectKyc":
+                                        <span class="badge bg-danger-subtle text-danger"><i class="fa-solid fa-xmark me-1"></i> رفض توثيق</span>
+                                        break;
+                                    case "UpdateCurrency":
+                                    case "CreateCurrency":
+                                        <span class="badge bg-info-subtle text-info"><i class="fa-solid fa-coins me-1"></i> إدارة العملات</span>
+                                        break;
+                                    case "ApproveDevice":
+                                    case "SetMainDevice":
+                                        <span class="badge bg-primary-subtle text-primary"><i class="fa-solid fa-mobile-screen me-1"></i> إدارة أجهزة</span>
+                                        break;
+                                    case "CreateStaff":
+                                    case "UpdateStaffRole":
+                                        <span class="badge bg-warning-subtle text-warning-emphasis"><i class="fa-solid fa-user-gear me-1"></i> إدارة موظفين</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-light text-dark border">@log.ActionTypeNameAr</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="fw-bold font-monospace small">@log.EntityName</td>
+                            <td class="small text-break">@log.Details</td>
+                            <td class="small font-monospace text-muted">@(log.IpAddress ?? "---")</td>
+                            <td class="small font-monospace text-muted">@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,206 @@
+@model List<Banky.Web.Models.StaffUserModel>
+@{
+    ViewData["Title"] = "إدارة الموظفين وصلاحيات لوحة التحكم";
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-user-gear text-primary me-2"></i> فريق العمل وإدارة الصلاحيات</h5>
+            <p class="text-muted small mb-0">إضافة موظفين وتحديد صلاحياتهم (توثيق الهويات، إدارة العملات، تدقيق العمليات)</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#createStaffModal">
+                <i class="fa-solid fa-user-plus me-1"></i> إضافة موظف جديد
+            </button>
+        </div>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-users-slash fs-1 mb-2"></i>
+            <p class="mb-0">لا يوجد موظفين مسجلين حالياً</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>اسم الموظف</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>رقم الهاتف</th>
+                        <th>الدور والصلاحية</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var staff in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold text-primary">
+                                <i class="fa-solid fa-user-shield text-muted me-2"></i>@staff.FullName
+                            </td>
+                            <td class="font-monospace">@staff.Email</td>
+                            <td dir="ltr" class="text-end font-monospace">@staff.Phone</td>
+                            <td>
+                                @switch (staff.Role)
+                                {
+                                    case "Admin":
+                                        <span class="badge bg-danger px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> مدير عام كامل الصلاحيات</span>
+                                        break;
+                                    case "Teller":
+                                        <span class="badge bg-primary px-3 py-2"><i class="fa-solid fa-cash-register me-1"></i> موظف سحب وإيداع شامل</span>
+                                        break;
+                                    case "TellerDeposit":
+                                        <span class="badge bg-teal text-white px-3 py-2" style="background-color: #0d9488;"><i class="fa-solid fa-arrow-down-to-bracket me-1"></i> موظف إيداع وتغذية</span>
+                                        break;
+                                    case "TellerWithdrawal":
+                                        <span class="badge bg-dark px-3 py-2"><i class="fa-solid fa-hand-holding-dollar me-1"></i> موظف سحب نقدي</span>
+                                        break;
+                                    case "KycOfficer":
+                                        <span class="badge bg-warning text-dark px-3 py-2"><i class="fa-solid fa-id-card me-1"></i> مسؤول توثيق الهويات</span>
+                                        break;
+                                    case "CurrencyOfficer":
+                                        <span class="badge bg-info text-dark px-3 py-2"><i class="fa-solid fa-coins me-1"></i> مسؤول العملات والصرف</span>
+                                        break;
+                                    case "Auditor":
+                                        <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-clipboard-check me-1"></i> مدقق العمليات المالية</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary px-3 py-2">@staff.Role</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="small text-muted font-monospace">@staff.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                @if (staff.IsBlocked)
+                                {
+                                    <span class="badge bg-danger">حساب مجمد</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">نشط</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openUpdateRoleModal('@staff.Id', '@staff.FullName', '@staff.Role')">
+                                        <i class="fa-solid fa-user-pen me-1"></i> تعديل الدور
+                                    </button>
+
+                                    <form asp-action="ToggleStatus" asp-route-id="@staff.Id" method="post" class="d-inline" onsubmit="return confirm('هل أنت متأكد من تغيير حالة حساب الموظف؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm @(staff.IsBlocked ? "btn-success" : "btn-outline-danger")">
+                                            <i class="fa-solid @(staff.IsBlocked ? "fa-unlock" : "fa-lock") me-1"></i> @(staff.IsBlocked ? "تفعيل" : "تجميد")
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Modal إضافة موظف جديد -->
+<div class="modal fade" id="createStaffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i> إضافة موظف جديد</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">الاسم الكامل للموظف</label>
+                        <input type="text" name="FullName" class="form-control" required placeholder="مثال: خالد محمد عادل" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">البريد الإلكتروني</label>
+                        <input type="email" name="Email" class="form-control font-monospace" required placeholder="staff@banky.com" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">رقم الهاتف</label>
+                        <input type="text" name="Phone" class="form-control font-monospace" dir="ltr" required placeholder="777112233" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">كلمة المرور</label>
+                        <input type="password" name="Password" class="form-control font-monospace" required minlength="6" placeholder="******" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">الدور والصلاحية</label>
+                        <select name="Role" class="form-select" required>
+                            <option value="Teller">موظف سحب وإيداع شامل (Teller) - تغذية، سحب، فتح محافظ، واستعلام</option>
+                            <option value="TellerDeposit">موظف إيداع وتغذية (TellerDeposit) - إيداع الأرصدة وفتح المحافظ</option>
+                            <option value="TellerWithdrawal">موظف سحب نقدي (TellerWithdrawal) - صرف المبالغ النقدية</option>
+                            <option value="KycOfficer">مسؤول توثيق الهويات (KycOfficer) - مراجعة وقبول/رفض البطاقات</option>
+                            <option value="CurrencyOfficer">مسؤول العملات والصرف (CurrencyOfficer) - إدارة أسعار الصرف</option>
+                            <option value="Auditor">مدقق ومراجع العمليات (Auditor) - فحص السجلات والتدقيق</option>
+                            <option value="Admin">مدير عام بكامل الصلاحيات (Admin)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">إنشاء الحساب</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تعديل دور الموظف -->
+<div class="modal fade" id="updateRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <form asp-action="UpdateRole" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="StaffId" id="updateStaffId" />
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-gear me-2"></i> تعديل صلاحيات الموظف</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">تعديل صلاحية الموظف: <strong id="updateStaffName" class="text-primary"></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">الدور الجديد</label>
+                        <select name="NewRole" id="updateStaffRoleSelect" class="form-select" required>
+                            <option value="Teller">موظف سحب وإيداع شامل (Teller)</option>
+                            <option value="TellerDeposit">موظف إيداع وتغذية (TellerDeposit)</option>
+                            <option value="TellerWithdrawal">موظف سحب نقدي (TellerWithdrawal)</option>
+                            <option value="KycOfficer">مسؤول توثيق الهويات (KycOfficer)</option>
+                            <option value="CurrencyOfficer">مسؤول العملات والصرف (CurrencyOfficer)</option>
+                            <option value="Auditor">مدقق ومراجع العمليات (Auditor)</option>
+                            <option value="Admin">مدير عام بكامل الصلاحيات (Admin)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-body border-top">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary fw-bold">حفظ الصلاحية الجديدة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openUpdateRoleModal(id, name, currentRole) {
+            document.getElementById('updateStaffId').value = id;
+            document.getElementById('updateStaffName').textContent = name;
+            document.getElementById('updateStaffRoleSelect').value = currentRole;
+            new bootstrap.Modal(document.getElementById('updateRoleModal')).show();
+        }
+    </script>
+}

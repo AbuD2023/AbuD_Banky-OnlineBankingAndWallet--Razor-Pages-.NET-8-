@@ -63,7 +63,7 @@ namespace Banky.API.DTOs
     }
 
     /// <summary>
-    /// استجابة الاستعلام عن مستلم برقم الهاتف قبل تأكيد التحويل
+    /// استجابة الاستعلام عن مستلم برقم الهاتف قبل تأكيد التحويل مع بيان الرسوم
     /// </summary>
     public class RecipientLookupResponseDto
     {
@@ -75,10 +75,16 @@ namespace Banky.API.DTOs
         public string Phone { get; set; } = string.Empty;
         public bool IsNameMasked { get; set; }
         public bool HasActiveWalletInCurrency { get; set; }
+
+        /// <summary>
+        /// تفاصيل الرسوم والعمولة التقديرية
+        /// </summary>
+        public decimal EstimatedFee { get; set; } = 0.00m;
+        public string? FeeDescription { get; set; }
     }
 
     /// <summary>
-    /// استجابة الاستعلام عن نقطة بيع قبل تأكيد الدفع
+    /// استجابة الاستعلام عن نقطة بيع قبل تأكيد الدفع مع بيان الرسوم
     /// </summary>
     public class PosLookupResponseDto
     {
@@ -89,5 +95,44 @@ namespace Banky.API.DTOs
         public string? Address { get; set; }
         public string MerchantDisplayName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// تفاصيل الرسوم والعمولة التقديرية
+        /// </summary>
+        public decimal EstimatedFee { get; set; } = 0.00m;
+        public string? FeeDescription { get; set; }
+    }
+
+    /// <summary>
+    /// نموذج التحويل والمصارفة بين محافظ العميل الخاصة
+    /// </summary>
+    public class SelfExchangeDto
+    {
+        [Required(ErrorMessage = "العملة المصدر مطلوبة")]
+        public string FromCurrencyCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "العملة الهدف مطلوبة")]
+        public string ToCurrencyCode { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "المبلغ مطلوب")]
+        [Range(0.01, 100000000, ErrorMessage = "المبلغ يجب أن يكون أكبر من الصفر")]
+        public decimal Amount { get; set; }
+
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// نموذج حساب سعر الصرف والمبلغ المحول مع بيان العمولة
+    /// </summary>
+    public class ExchangeCalculationResultDto
+    {
+        public string FromCurrencyCode { get; set; } = string.Empty;
+        public string ToCurrencyCode { get; set; } = string.Empty;
+        public decimal SourceAmount { get; set; }
+        public decimal TargetAmount { get; set; }
+        public decimal ExchangeRate { get; set; }
+        public decimal Fee { get; set; } = 0.00m;
+        public decimal TotalSourceAmountWithFee { get; set; }
+        public string? FeeDescription { get; set; }
     }
 }

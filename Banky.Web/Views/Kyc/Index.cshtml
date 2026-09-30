@@ -1,14 +1,14 @@
 @model List<Banky.Web.Models.RecentKycRequestModel>
 @{
     ViewData["Title"] = "توثيق ومراجعة الهويات الشخصية (KYC)";
-    var apiBaseUrl = "http://localhost:5021"; // رابط استعراض ملفات الـ API
+    var apiBaseUrl = "http://10.0.114.6:5021"; // رابط استعراض ملفات الـ API
 }
 
 <div class="card bg-body rounded-4 p-4 shadow-sm">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h5 class="fw-bold mb-1"><i class="fa-solid fa-id-card text-primary me-2"></i> طلبات توثيق الهويات الشخصية</h5>
-            <p class="text-muted small mb-0">قم بمعاينة صورتي البطاقة (الوجهين) والموافقة على الحساب أو رفضه مع ذكر السبب</p>
+            <p class="text-muted small mb-0">انقر على أي صف لعرض الملف الكامل للعميل وأجهزته ومحافظه وصور هويته واتخاذ القرار</p>
         </div>
         <div class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">
             <i class="fa-solid fa-clock me-1"></i> @Model.Count طلبات معلقة
@@ -31,34 +31,34 @@
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>الاسم الرباعي</th>
+                        <th>الاسم الرباعي الكامل</th>
                         <th>البريد الإلكتروني</th>
                         <th>رقم الهاتف</th>
                         <th>تاريخ الرفع</th>
-                        <th>صور الهوية (الوجهين)</th>
-                        <th>القرار والإجراء</th>
+                        <th>فحص التفاصيل</th>
+                        <th>القرار السريع</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var item in Model)
                     {
-                        var frontImg = !string.IsNullOrEmpty(item.KycIdFront) ? (item.KycIdFront.StartsWith("http") ? item.KycIdFront : $"{apiBaseUrl}{item.KycIdFront}") : "/images/id-front-placeholder.png";
-                        var backImg = !string.IsNullOrEmpty(item.KycIdBack) ? (item.KycIdBack.StartsWith("http") ? item.KycIdBack : $"{apiBaseUrl}{item.KycIdBack}") : "/images/id-back-placeholder.png";
+                        var frontImg = !string.IsNullOrEmpty(item.KycIdFront) ? (item.KycIdFront.StartsWith("http") ? item.KycIdFront : $"{apiBaseUrl}{item.KycIdFront}") : "/images/id_placeholder.png";
+                        var backImg = !string.IsNullOrEmpty(item.KycIdBack) ? (item.KycIdBack.StartsWith("http") ? item.KycIdBack : $"{apiBaseUrl}{item.KycIdBack}") : "/images/id_placeholder.png";
 
-                        <tr>
-                            <td class="fw-bold">@item.FullName</td>
-                            <td>@item.Email</td>
-                            <td dir="ltr" class="text-end">@item.Phone</td>
+                        <tr style="cursor: pointer;" onclick="loadAndShowClientKycModal('@item.ClientId', '@frontImg', '@backImg')">
+                            <td class="fw-bold text-primary">
+                                <i class="fa-solid fa-user me-2 text-muted"></i>@item.FullName
+                            </td>
+                            <td class="font-monospace">@item.Email</td>
+                            <td dir="ltr" class="text-end font-monospace">@item.Phone</td>
                             <td class="small text-muted">@item.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-outline-info" 
-                                        onclick="openKycModal('@item.ClientId', '@item.FullName', '@frontImg', '@backImg')">
-                                    <i class="fa-solid fa-images me-1"></i> معاينة البطاقة
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); loadAndShowClientKycModal('@item.ClientId', '@frontImg', '@backImg')">
+                                    <i class="fa-solid fa-magnifying-glass-plus me-1"></i> فحص شامل
                                 </button>
                             </td>
                             <td>
-                                <div class="d-flex gap-2">
-                                    <!-- زر القبول المباشر -->
+                                <div class="d-flex gap-2" onclick="event.stopPropagation();">
                                     <form asp-action="Review" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="clientId" value="@item.ClientId" />
@@ -68,7 +68,6 @@
                                         </button>
                                     </form>
 
-                                    <!-- زر الرفض مع المودال -->
                                     <button type="button" class="btn btn-sm btn-outline-danger px-3" 
                                             onclick="openRejectModal('@item.ClientId', '@item.FullName')">
                                         <i class="fa-solid fa-xmark me-1"></i> رفض
@@ -83,55 +82,154 @@
     }
 </div>
 
-<!-- Modal معاينة صور الهوية -->
-<div class="modal fade" id="kycPreviewModal" tabindex="-1" aria-labelledby="kycPreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- Modal الفحص الشامل للعميل والتفاصيل المملة وأجهزته ومحافظه -->
+<div class="modal fade" id="fullKycModal" tabindex="-1" aria-labelledby="fullKycModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header bg-body border-bottom">
-                <h5 class="modal-title fw-bold" id="kycModalTitle">معاينة بطاقة الهوية</h5>
-                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="fullKycModalLabel">
+                    <i class="fa-solid fa-user-check me-2"></i> الملف الشامل للعميل ومراجعة الهوية
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-6 text-center">
-                        <h6 class="fw-bold mb-2 text-primary">الوجه الأمامي للبطاقة</h6>
-                        <div class="p-2 border rounded-3 bg-body-tertiary">
-                            <img id="kycFrontImage" src="" alt="الوجه الأمامي" class="img-fluid rounded shadow-sm" style="max-height: 280px; object-fit: contain;" />
+            <div class="modal-body p-4" id="fullKycModalBody">
+                <!-- مؤشر التحميل -->
+                <div id="kycLoadingSpinner" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <p class="text-muted">جاري تحميل كافة بيانات العميل وأجهزته ومحافظه...</p>
+                </div>
+
+                <div id="kycDetailsContent" class="d-none">
+                    <!-- معلومات العميل الأساسية -->
+                    <div class="card bg-body-tertiary p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-address-card me-2"></i> البيانات الشخصية ومعلومات الاتصال</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">الاسم الرباعي الكامل:</span>
+                                <span class="fw-bold fs-6" id="clientFullName"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">رقم الهاتف:</span>
+                                <span class="fw-bold font-monospace" dir="ltr" id="clientPhone"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">البريد الإلكتروني:</span>
+                                <span class="fw-bold font-monospace" id="clientEmail"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">الاسم المقنع (الحروف الأولى):</span>
+                                <span class="fw-bold text-secondary" id="clientMaskedName"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">الرقم البديل لنقاط البيع (Alias):</span>
+                                <span class="fw-bold font-monospace text-secondary" id="clientPosAlias"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <span class="small text-muted d-block">تاريخ إنشاء الحساب:</span>
+                                <span class="small" id="clientCreatedAt"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6 text-center">
-                        <h6 class="fw-bold mb-2 text-primary">الوجه الخلفي للبطاقة</h6>
-                        <div class="p-2 border rounded-3 bg-body-tertiary">
-                            <img id="kycBackImage" src="" alt="الوجه الخلفي" class="img-fluid rounded shadow-sm" style="max-height: 280px; object-fit: contain;" />
+
+                    <!-- صور بطاقة الهوية الشخصية (الوجهين) -->
+                    <div class="card bg-body-tertiary p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-id-card me-2"></i> وثائق الهوية المرفوعة للفحص</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6 text-center">
+                                <label class="fw-bold small text-muted mb-2">صورة الوجه الأمامي</label>
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <img id="detailKycFront" src="" alt="الوجه الأمامي" class="img-fluid rounded" style="max-height: 250px; object-fit: contain; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="انقر لفتح الصورة بحجم كامل" />
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <label class="fw-bold small text-muted mb-2">صورة الوجه الخلفي</label>
+                                <div class="border rounded-3 p-2 bg-white">
+                                    <img id="detailKycBack" src="" alt="الوجه الخلفي" class="img-fluid rounded" style="max-height: 250px; object-fit: contain; cursor: pointer;" onclick="window.open(this.src, '_blank')" title="انقر لفتح الصورة بحجم كامل" />
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- قائمة الأجهزة المرتبطة بالعميل -->
+                    <div class="card bg-body-tertiary p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-mobile-screen-button me-2"></i> الأجهزة المرتبطة بحساب العميل</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered bg-white align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>اسم الجهاز</th>
+                                        <th>معرف الجهاز (Device ID)</th>
+                                        <th>الجهاز الرئيسي</th>
+                                        <th>حالة الموافقة</th>
+                                        <th>تاريخ التسجيل</th>
+                                        <th>آخر نشاط</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clientDevicesTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- محافظ العميل وأرصدته -->
+                    <div class="card bg-body-tertiary p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-wallet me-2"></i> المحافظ المالية المسجلة</h6>
+                        <div class="row g-3" id="clientWalletsContainer">
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- أزرار اتخاذ القرار -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                        <form asp-action="Review" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="clientId" id="modalApproveClientId" />
+                            <input type="hidden" name="isApproved" value="true" />
+                            <button type="submit" class="btn btn-success px-4 py-2 fw-bold">
+                                <i class="fa-solid fa-circle-check me-1"></i> اعتماد وقبول توثيق الحساب
+                            </button>
+                        </form>
+
+                        <button type="button" class="btn btn-outline-danger px-4 py-2 fw-bold" onclick="document.getElementById('modalRejectContainer').classList.toggle('d-none')">
+                            <i class="fa-solid fa-circle-xmark me-1"></i> رفض التوثيق...
+                        </button>
+                    </div>
+
+                    <div id="modalRejectContainer" class="d-none mt-3 p-3 bg-danger-subtle rounded-3">
+                        <form asp-action="Review" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="clientId" id="modalRejectClientId" />
+                            <input type="hidden" name="isApproved" value="false" />
+                            <label class="form-label fw-bold small text-danger">سبب الرفض الموجه للعميل في التطبيق:</label>
+                            <textarea name="rejectionReason" class="form-control mb-2" rows="2" placeholder="اكتب سبب الرفض بالتفصيل..."></textarea>
+                            <button type="submit" class="btn btn-danger btn-sm fw-bold">تأكيد الرفض وإرسال الإشعار</button>
+                        </form>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer bg-body border-top">
-                <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">إغلاق</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal رفض التوثيق مع ذكر السبب -->
+<!-- Modal رفض التوثيق السريع -->
 <div class="modal fade" id="rejectKycModal" tabindex="-1" aria-labelledby="rejectKycModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow">
             <form asp-action="Review" method="post">
                 @Html.AntiForgeryToken()
-                <input type="hidden" id="rejectClientId" name="clientId" value="" />
+                <input type="hidden" id="quickRejectClientId" name="clientId" value="" />
                 <input type="hidden" name="isApproved" value="false" />
 
                 <div class="modal-header bg-danger text-white rounded-top-4">
                     <h5 class="modal-title fw-bold">رفض طلب التوثيق</h5>
-                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="mb-3">أنت على وشك رفض توثيق حساب: <strong id="rejectClientName" class="text-danger"></strong></p>
+                    <p class="mb-3">أنت على وشك رفض توثيق حساب: <strong id="quickRejectClientName" class="text-danger"></strong></p>
                     <div class="mb-3">
-                        <label for="rejectionReason" class="form-label fw-bold small">سبب الرفض (سيظهر للمستخدم في التطبيق)</label>
-                        <textarea id="rejectionReason" name="rejectionReason" class="form-control" rows="3" placeholder="مثال: الصورة غير واضحة، أو البيانات غير مطابقة لبطاقة الهوية"></textarea>
+                        <label for="quickRejectionReason" class="form-label fw-bold small">سبب الرفض</label>
+                        <textarea id="quickRejectionReason" name="rejectionReason" class="form-control" rows="3" placeholder="مثال: الصورة غير واضحة، أو البيانات غير مطابقة لبطاقة الهوية"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer bg-body border-top">
@@ -145,17 +243,98 @@
 
 @section Scripts {
     <script>
-        function openKycModal(clientId, fullName, frontUrl, backUrl) {
-            document.getElementById('kycModalTitle').textContent = 'معاينة بطاقة الهوية لـ ' + fullName;
-            document.getElementById('kycFrontImage').src = frontUrl;
-            document.getElementById('kycBackImage').src = backUrl;
-            new bootstrap.Modal(document.getElementById('kycPreviewModal')).show();
+        function openRejectModal(clientId, fullName) {
+            document.getElementById('quickRejectClientId').value = clientId;
+            document.getElementById('quickRejectClientName').textContent = fullName;
+            new bootstrap.Modal(document.getElementById('rejectKycModal')).show();
         }
 
-        function openRejectModal(clientId, fullName) {
-            document.getElementById('rejectClientId').value = clientId;
-            document.getElementById('rejectClientName').textContent = fullName;
-            new bootstrap.Modal(document.getElementById('rejectKycModal')).show();
+        async function loadAndShowClientKycModal(clientId, frontImg, backImg) {
+            const modalEl = document.getElementById('fullKycModal');
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+
+            document.getElementById('kycLoadingSpinner').classList.remove('d-none');
+            document.getElementById('kycDetailsContent').classList.add('d-none');
+            document.getElementById('modalRejectContainer').classList.add('d-none');
+
+            document.getElementById('modalApproveClientId').value = clientId;
+            document.getElementById('modalRejectClientId').value = clientId;
+
+            document.getElementById('detailKycFront').src = frontImg || '/images/id_placeholder.png';
+            document.getElementById('detailKycBack').src = backImg || '/images/id_placeholder.png';
+
+            try {
+                const res = await fetch('/Clients/GetDetailsJson?id=' + clientId);
+                const json = await res.json();
+
+                if (json.success && json.data) {
+                    const d = json.data;
+                    const c = d.client;
+
+                    document.getElementById('clientFullName').textContent = c.fullName || '---';
+                    document.getElementById('clientPhone').textContent = c.phone || '---';
+                    document.getElementById('clientEmail').textContent = c.email || '---';
+                    document.getElementById('clientMaskedName').textContent = (c.hideFullName ? 'نعم (مفعل)' : 'لا') + ' - ' + (c.fullName ? c.fullName.split(' ').map(x=>x[0]).join(' . ') : '');
+                    document.getElementById('clientPosAlias').textContent = c.posAliasPhone || '---';
+                    document.getElementById('clientCreatedAt').textContent = new Date(c.createdAt).toLocaleString('ar-YE');
+
+                    // ملء جدول الأجهزة
+                    const devBody = document.getElementById('clientDevicesTableBody');
+                    devBody.innerHTML = '';
+                    if (d.devices && d.devices.length > 0) {
+                        d.devices.forEach(dev => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td class="fw-bold">${dev.deviceName || 'هاتف غير مسمى'}</td>
+                                <td class="font-monospace small">${dev.deviceId || '---'}</td>
+                                <td>${dev.mainDevice ? '<span class="badge bg-primary">جهاز رئيسي</span>' : '<span class="badge bg-secondary">جهاز إضافي</span>'}</td>
+                                <td>${dev.isApproved ? '<span class="badge bg-success">معتمد وموافق عليه</span>' : '<span class="badge bg-warning text-dark">بانتظار الموافقة</span>'}</td>
+                                <td class="small">${new Date(dev.createdAt).toLocaleDateString('ar-YE')}</td>
+                                <td class="small">${dev.updatedAt ? new Date(dev.updatedAt).toLocaleString('ar-YE') : '---'}</td>
+                            `;
+                            devBody.appendChild(tr);
+                        });
+                    } else {
+                        devBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2">لا توجد أجهزة مسجلة لهذا العميل حتى الآن</td></tr>';
+                    }
+
+                    // ملء المحافظ
+                    const wContainer = document.getElementById('clientWalletsContainer');
+                    wContainer.innerHTML = '';
+                    if (d.wallets && d.wallets.length > 0) {
+                        d.wallets.forEach(w => {
+                            const col = document.createElement('div');
+                            col.className = 'col-md-4';
+                            col.innerHTML = `
+                                <div class="card p-3 border shadow-none bg-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="small text-muted font-monospace">${w.accountNumber}</div>
+                                            <div class="fw-bold text-success fs-5">${w.balance.toLocaleString()} ${w.currencySymbol}</div>
+                                            <small class="text-muted">${w.currencyNameAr}</small>
+                                        </div>
+                                        <div class="stat-icon bg-success-subtle text-success p-2 rounded-circle">
+                                            <i class="fa-solid fa-wallet"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            wContainer.appendChild(col);
+                        });
+                    } else {
+                        wContainer.innerHTML = '<div class="col-12 text-muted small">لا توجد محافظ منشأة</div>';
+                    }
+
+                    document.getElementById('kycLoadingSpinner').classList.add('d-none');
+                    document.getElementById('kycDetailsContent').classList.remove('d-none');
+                } else {
+                    alert('تعذر جلب تفاصيل العميل: ' + (json.message || 'خطأ غير معروف'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('فشل الاتصال بالخادم');
+            }
         }
     </script>
 }

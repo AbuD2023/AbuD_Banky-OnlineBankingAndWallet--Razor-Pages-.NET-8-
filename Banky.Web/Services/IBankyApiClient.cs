@@ -34,9 +34,34 @@ namespace Banky.Web.Services
         Task<ApiResponse<List<ClientProfileModel>>> GetAllClientsAsync();
 
         /// <summary>
-        /// استرجاع تفاصيل عميل محدد ومحافظه ونقاط بيعه وعملياته
+        /// استرجاع تفاصيل عميل محدد ومحافظه ونقاط بيعه وعملياته وأجهزته
         /// </summary>
         Task<ApiResponse<ClientDetailsModel>> GetClientDetailsAsync(Guid id);
+
+        /// <summary>
+        /// تعديل بيانات العميل من قبل الإدارة
+        /// </summary>
+        Task<ApiResponse> UpdateClientAsync(Guid id, AdminUpdateClientModel model);
+
+        /// <summary>
+        /// استرجاع أجهزة العميل
+        /// </summary>
+        Task<ApiResponse<List<ClientDeviceModel>>> GetClientDevicesAsync(Guid clientId);
+
+        /// <summary>
+        /// الموافقة على تسجيل دخول جهاز
+        /// </summary>
+        Task<ApiResponse> ApproveDeviceAsync(Guid deviceId);
+
+        /// <summary>
+        /// تعيين جهاز كجهاز رئيسي
+        /// </summary>
+        Task<ApiResponse> SetMainDeviceAsync(Guid deviceId);
+
+        /// <summary>
+        /// حذف جهاز
+        /// </summary>
+        Task<ApiResponse> DeleteDeviceAsync(Guid deviceId);
 
         /// <summary>
         /// إعادة تعيين كلمة المرور للعميل إلى كلمة مؤقتة وإجباره على تغييرها
@@ -47,6 +72,31 @@ namespace Banky.Web.Services
         /// حظر أو فك حظر حساب عميل
         /// </summary>
         Task<ApiResponse> ToggleBlockClientAsync(BlockClientRequestModel model);
+
+        /// <summary>
+        /// استرجاع قائمة الموظفين
+        /// </summary>
+        Task<ApiResponse<List<StaffUserModel>>> GetAllStaffAsync();
+
+        /// <summary>
+        /// إضافة موظف جديد
+        /// </summary>
+        Task<ApiResponse<StaffUserModel>> CreateStaffAsync(CreateStaffModel model);
+
+        /// <summary>
+        /// تعديل دور الموظف
+        /// </summary>
+        Task<ApiResponse> UpdateStaffRoleAsync(UpdateStaffRoleModel model);
+
+        /// <summary>
+        /// تجميد/تفعيل حساب موظف
+        /// </summary>
+        Task<ApiResponse> ToggleStaffStatusAsync(Guid staffId);
+
+        /// <summary>
+        /// استرجاع سجل التدقيق والأنشطة الإدارية
+        /// </summary>
+        Task<ApiResponse<List<AuditLogModel>>> GetAuditLogsAsync();
 
         /// <summary>
         /// استرجاع كافة العملات المعتمدة
@@ -77,5 +127,68 @@ namespace Banky.Web.Services
         /// استرجاع سجل العمليات والحركات المالية الكاملة مع الفلاتر
         /// </summary>
         Task<ApiResponse<List<TransactionModel>>> GetAllTransactionsAsync(TransactionFilterModel? filter = null);
+
+        #region إدارة الرسوم والعمولات المصرفية
+
+        /// <summary>
+        /// استرجاع كافة إعدادات الرسوم والعمولات
+        /// </summary>
+        Task<ApiResponse<List<FeeSettingViewModel>>> GetAllFeesAsync();
+
+        /// <summary>
+        /// استرجاع إعداد رسوم محدد بالمعرف
+        /// </summary>
+        Task<ApiResponse<FeeSettingViewModel>> GetFeeByIdAsync(int id);
+
+        /// <summary>
+        /// إنشاء قاعدة ورسوم جديدة لعملية وعملة محددة
+        /// </summary>
+        Task<ApiResponse<FeeSettingViewModel>> CreateFeeAsync(CreateFeeSettingViewModel model);
+
+        /// <summary>
+        /// تعديل إعداد الرسوم والعمولة لعملية محددة
+        /// </summary>
+        Task<ApiResponse<FeeSettingViewModel>> UpdateFeeAsync(int id, EditFeeSettingViewModel model);
+
+        /// <summary>
+        /// حذف قاعدة ورسوم مخصصة
+        /// </summary>
+        Task<ApiResponse> DeleteFeeAsync(int id);
+
+        /// <summary>
+        /// معاينة وحساب الرسوم التقديرية والمبلغ الإجمالي
+        /// </summary>
+        Task<ApiResponse<FeePreviewViewModel>> CalculateFeePreviewAsync(string type, decimal amount, string currency = "YER");
+
+        #endregion
+
+        #region خدمات موظف الصندوق والسحب والإيداع (Teller Operations)
+
+        /// <summary>
+        /// البحث والاستعلام عن العميل لموظف الصندوق
+        /// </summary>
+        Task<ApiResponse<TellerClientSummaryModel>> SearchClientForTellerAsync(string query);
+
+        /// <summary>
+        /// تنفيذ إيداع وتغذية رصيد العميل بأي عملة
+        /// </summary>
+        Task<ApiResponse<TransactionModel>> TellerDepositAsync(TellerDepositRequestModel model);
+
+        /// <summary>
+        /// تنفيذ سحب نقدي من حساب العميل
+        /// </summary>
+        Task<ApiResponse<TransactionModel>> TellerWithdrawAsync(TellerWithdrawalRequestModel model);
+
+        /// <summary>
+        /// فتح وإضافة محفظة جديدة للعميل بعملة محددة
+        /// </summary>
+        Task<ApiResponse<WalletModel>> TellerAddWalletAsync(TellerAddWalletModel model);
+
+        /// <summary>
+        /// استرجاع سجل آخر عمليات الصندوق
+        /// </summary>
+        Task<ApiResponse<List<TransactionModel>>> GetTellerRecentOperationsAsync();
+
+        #endregion
     }
 }

@@ -3,72 +3,80 @@
     ViewData["Title"] = "الرئيسية والإحصاءات العامة";
 }
 
-<!-- صف البطاقات الإحصائية الرئيسية -->
+<!-- صف البطاقات الإحصائية الرئيسية - قابلة للنقر للتوجيه المباشر -->
 <div class="row g-3 mb-4">
     <!-- إجمالي العملاء -->
     <div class="col-md-6 col-xl-3">
-        <div class="card stat-card bg-body p-3 h-100">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted small fw-semibold">إجمالي العملاء</div>
-                    <h3 class="fw-bold my-1">@Model.TotalClientsCount</h3>
-                    <div class="small text-success"><i class="fa-solid fa-users me-1"></i> حسابات مسجلة</div>
-                </div>
-                <div class="stat-icon bg-primary-subtle text-primary">
-                    <i class="fa-solid fa-users"></i>
+        <a asp-controller="Clients" asp-action="Index" class="text-decoration-none">
+            <div class="card stat-card bg-body p-3 h-100 shadow-sm" style="cursor: pointer;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">إجمالي العملاء</div>
+                        <h3 class="fw-bold my-1 text-primary">@Model.TotalClientsCount</h3>
+                        <div class="small text-success"><i class="fa-solid fa-users me-1"></i> حسابات مسجلة <i class="fa-solid fa-arrow-left ms-1"></i></div>
+                    </div>
+                    <div class="stat-icon bg-primary-subtle text-primary">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- طلبات التوثيق المعلقة KYC -->
     <div class="col-md-6 col-xl-3">
-        <div class="card stat-card bg-body p-3 h-100 border-warning-subtle">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted small fw-semibold">طلبات التوثيق المعلقة</div>
-                    <h3 class="fw-bold my-1 text-warning">@Model.PendingKycCount</h3>
-                    <a asp-controller="Kyc" asp-action="Index" class="small text-decoration-none">
-                        مراجعة الطلبات <i class="fa-solid fa-arrow-left"></i>
-                    </a>
-                </div>
-                <div class="stat-icon bg-warning-subtle text-warning">
-                    <i class="fa-solid fa-id-card-clip"></i>
+        <a asp-controller="Kyc" asp-action="Index" class="text-decoration-none">
+            <div class="card stat-card bg-body p-3 h-100 border-warning-subtle shadow-sm" style="cursor: pointer;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">طلبات التوثيق المعلقة</div>
+                        <h3 class="fw-bold my-1 text-warning">@Model.PendingKycCount</h3>
+                        <div class="small text-warning fw-semibold">
+                            مراجعة وفحص الهويات <i class="fa-solid fa-arrow-left ms-1"></i>
+                        </div>
+                    </div>
+                    <div class="stat-icon bg-warning-subtle text-warning">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- إجمالي نقاط البيع -->
     <div class="col-md-6 col-xl-3">
-        <div class="card stat-card bg-body p-3 h-100">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted small fw-semibold">نقاط البيع (POS)</div>
-                    <h3 class="fw-bold my-1">@Model.TotalPosCount</h3>
-                    <div class="small text-info"><i class="fa-solid fa-store me-1"></i> متجر ونقطة دفع</div>
-                </div>
-                <div class="stat-icon bg-info-subtle text-info">
-                    <i class="fa-solid fa-store"></i>
+        <a asp-controller="Pos" asp-action="Index" class="text-decoration-none">
+            <div class="card stat-card bg-body p-3 h-100 shadow-sm" style="cursor: pointer;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">نقاط البيع (POS)</div>
+                        <h3 class="fw-bold my-1 text-info">@Model.TotalPosCount</h3>
+                        <div class="small text-info"><i class="fa-solid fa-store me-1"></i> شبكة المتاجر <i class="fa-solid fa-arrow-left ms-1"></i></div>
+                    </div>
+                    <div class="stat-icon bg-info-subtle text-info">
+                        <i class="fa-solid fa-store"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- إجمالي العمليات المنفذة -->
     <div class="col-md-6 col-xl-3">
-        <div class="card stat-card bg-body p-3 h-100">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted small fw-semibold">إجمالي العمليات</div>
-                    <h3 class="fw-bold my-1 text-success">@Model.TotalTransactionsCount</h3>
-                    <div class="small text-muted">حوالات ودفع وإيداعات</div>
-                </div>
-                <div class="stat-icon bg-success-subtle text-success">
-                    <i class="fa-solid fa-money-bill-transfer"></i>
+        <a asp-controller="Transactions" asp-action="Index" class="text-decoration-none">
+            <div class="card stat-card bg-body p-3 h-100 shadow-sm" style="cursor: pointer;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">إجمالي العمليات</div>
+                        <h3 class="fw-bold my-1 text-success">@Model.TotalTransactionsCount</h3>
+                        <div class="small text-success"><i class="fa-solid fa-money-bill-transfer me-1"></i> السجل المالي <i class="fa-solid fa-arrow-left ms-1"></i></div>
+                    </div>
+                    <div class="stat-icon bg-success-subtle text-success">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -134,20 +142,20 @@
                                 <th>اسم العميل</th>
                                 <th>الهاتف</th>
                                 <th>تاريخ الرفع</th>
-                                <th>الإجراء</th>
+                                <th>معاينة</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var kyc in Model.RecentKycRequests)
                             {
-                                <tr>
-                                    <td class="fw-bold">@kyc.FullName</td>
-                                    <td dir="ltr" class="text-end">@kyc.Phone</td>
+                                <tr style="cursor: pointer;" onclick="openKycModal('@kyc.ClientId', '@kyc.FullName', '@kyc.Email', '@kyc.Phone', '@kyc.KycIdFront', '@kyc.KycIdBack', '@kyc.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")')">
+                                    <td class="fw-bold text-primary">@kyc.FullName</td>
+                                    <td dir="ltr" class="text-end font-monospace">@kyc.Phone</td>
                                     <td class="small text-muted">@kyc.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")</td>
                                     <td>
-                                        <a asp-controller="Kyc" asp-action="Index" class="btn btn-sm btn-primary">
-                                            معاينة وقرار
-                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); openKycModal('@kyc.ClientId', '@kyc.FullName', '@kyc.Email', '@kyc.Phone', '@kyc.KycIdFront', '@kyc.KycIdBack', '@kyc.KycSubmittedAt?.ToString("yyyy-MM-dd HH:mm")')">
+                                            <i class="fa-solid fa-eye me-1"></i> فحص
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -188,9 +196,9 @@
                         <tbody>
                             @foreach (var trx in Model.RecentTransactions)
                             {
-                                <tr>
-                                    <td class="small font-monospace">@trx.TransactionNumber</td>
-                                    <td><span class="badge bg-secondary">@trx.TypeNameAr</span></td>
+                                <tr style="cursor: pointer;" onclick="openTrxModal('@trx.TransactionNumber', '@trx.TypeNameAr', '@trx.Amount.ToString("N2")', '@trx.CurrencyCode', '@trx.Fee.ToString("N2")', '@trx.TotalAmount.ToString("N2")', '@trx.StatusNameAr', '@trx.SenderRealFullName', '@trx.SenderRealPhone', '@trx.ReceiverRealFullName', '@trx.ReceiverRealPhone', '@(trx.PosName ?? "")', '@(trx.Note ?? "")', '@trx.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")')">
+                                    <td class="small font-monospace fw-bold text-primary">@trx.TransactionNumber</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary-emphasis">@trx.TypeNameAr</span></td>
                                     <td class="fw-bold text-success">@trx.Amount.ToString("N2") @trx.CurrencyCode</td>
                                     <td class="small text-muted">@trx.CreatedAt.ToString("MM-dd HH:mm")</td>
                                 </tr>
@@ -202,3 +210,182 @@
         </div>
     </div>
 </div>
+
+<!-- Modal تفاصيل وفحص توثيق الهوية KYC -->
+<div class="modal fade" id="kycModal" tabindex="-1" aria-labelledby="kycModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-warning-subtle">
+                <h5 class="modal-title fw-bold" id="kycModalLabel"><i class="fa-solid fa-id-card me-2"></i> تفاصيل ومراجعة توثيق الهوية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="small text-muted">اسم العميل الرباعي:</label>
+                        <div class="fw-bold fs-6" id="modalKycName"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small text-muted">رقم الهاتف:</label>
+                        <div class="fw-bold font-monospace" dir="ltr" id="modalKycPhone"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small text-muted">البريد الإلكتروني:</label>
+                        <div class="fw-bold font-monospace" id="modalKycEmail"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small text-muted">تاريخ رفع الوثائق:</label>
+                        <div class="fw-bold" id="modalKycDate"></div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 text-center">
+                        <h6 class="fw-bold text-muted mb-2">صورة البطاقة (الوجه الأمامي)</h6>
+                        <div class="border rounded-3 p-2 bg-light">
+                            <img id="modalKycFront" src="" alt="الوجه الأمامي" class="img-fluid rounded" style="max-height: 220px; object-fit: contain;" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <h6 class="fw-bold text-muted mb-2">صورة البطاقة (الوجه الخلفي)</h6>
+                        <div class="border rounded-3 p-2 bg-light">
+                            <img id="modalKycBack" src="" alt="الوجه الخلفي" class="img-fluid rounded" style="max-height: 220px; object-fit: contain;" />
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <!-- نموذج قرار التوثيق -->
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                    <form asp-controller="Kyc" asp-action="Review" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ClientId" id="approveClientId" />
+                        <input type="hidden" name="IsApproved" value="true" />
+                        <button type="submit" class="btn btn-success px-4 py-2 fw-bold">
+                            <i class="fa-solid fa-circle-check me-1"></i> اعتماد وقبول التوثيق
+                        </button>
+                    </form>
+
+                    <button type="button" class="btn btn-outline-danger px-4 py-2 fw-bold" onclick="document.getElementById('rejectFormContainer').classList.toggle('d-none')">
+                        <i class="fa-solid fa-circle-xmark me-1"></i> رفض الطلب...
+                    </button>
+                </div>
+
+                <div id="rejectFormContainer" class="d-none mt-3 p-3 bg-danger-subtle rounded-3">
+                    <form asp-controller="Kyc" asp-action="Review" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ClientId" id="rejectClientId" />
+                        <input type="hidden" name="IsApproved" value="false" />
+                        <label class="form-label fw-bold small text-danger">سبب الرفض الموجه للعميل:</label>
+                        <textarea name="RejectionReason" class="form-control mb-2" rows="2" placeholder="اكتب سبب الرفض بالتفصيل (مثل: الصور غير واضحة، الاسم غير مطابق...)"></textarea>
+                        <button type="submit" class="btn btn-danger btn-sm fw-bold">تأكيد الرفض</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تفاصيل الحركة المالية الكاملة -->
+<div class="modal fade" id="trxModal" tabindex="-1" aria-labelledby="trxModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="trxModalLabel"><i class="fa-solid fa-receipt me-2"></i> تفاصيل العملية المالية الكاملة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <span class="badge bg-primary-subtle text-primary fs-6 px-3 py-2 rounded-pill font-monospace" id="modalTrxNumber"></span>
+                    <h3 class="fw-bold mt-2 text-success" id="modalTrxAmount"></h3>
+                    <span class="badge bg-success" id="modalTrxStatus"></span>
+                </div>
+
+                <div class="list-group list-group-flush rounded-3 border">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">نوع العملية:</span>
+                        <span class="fw-bold" id="modalTrxType"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">اسم المرسل بالكامل:</span>
+                        <span class="fw-bold text-primary" id="modalTrxSenderName"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">هاتف المرسل الحقيقي:</span>
+                        <span class="fw-bold font-monospace" dir="ltr" id="modalTrxSenderPhone"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">اسم المستلم بالكامل:</span>
+                        <span class="fw-bold text-success" id="modalTrxReceiverName"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between" id="modalTrxReceiverPhoneRow">
+                        <span class="text-muted">هاتف المستلم:</span>
+                        <span class="fw-bold font-monospace" dir="ltr" id="modalTrxReceiverPhone"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between d-none" id="modalTrxPosRow">
+                        <span class="text-muted">نقطة البيع (POS):</span>
+                        <span class="fw-bold text-info" id="modalTrxPosName"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">الرسوم والعمولة:</span>
+                        <span class="fw-bold" id="modalTrxFee"></span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">التاريخ والتوقيت:</span>
+                        <span class="fw-bold small" id="modalTrxDate"></span>
+                    </div>
+                    <div class="list-group-item" id="modalTrxNoteRow">
+                        <span class="text-muted d-block small mb-1">البيان / الملاحظات:</span>
+                        <span class="fw-semibold text-break" id="modalTrxNote"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openKycModal(clientId, name, email, phone, frontImg, backImg, date) {
+            document.getElementById('modalKycName').innerText = name || '---';
+            document.getElementById('modalKycPhone').innerText = phone || '---';
+            document.getElementById('modalKycEmail').innerText = email || '---';
+            document.getElementById('modalKycDate').innerText = date || '---';
+            document.getElementById('modalKycFront').src = frontImg || '/images/id_placeholder.png';
+            document.getElementById('modalKycBack').src = backImg || '/images/id_placeholder.png';
+
+            document.getElementById('approveClientId').value = clientId;
+            document.getElementById('rejectClientId').value = clientId;
+            document.getElementById('rejectFormContainer').classList.add('d-none');
+
+            new bootstrap.Modal(document.getElementById('kycModal')).show();
+        }
+
+        function openTrxModal(num, type, amount, curr, fee, total, status, sName, sPhone, rName, rPhone, pos, note, date) {
+            document.getElementById('modalTrxNumber').innerText = num;
+            document.getElementById('modalTrxType').innerText = type;
+            document.getElementById('modalTrxAmount').innerText = amount + ' ' + curr;
+            document.getElementById('modalTrxStatus').innerText = status;
+            document.getElementById('modalTrxSenderName').innerText = sName || '---';
+            document.getElementById('modalTrxSenderPhone').innerText = sPhone || '---';
+            document.getElementById('modalTrxReceiverName').innerText = rName || '---';
+            document.getElementById('modalTrxReceiverPhone').innerText = rPhone || '---';
+            document.getElementById('modalTrxFee').innerText = fee + ' ' + curr;
+            document.getElementById('modalTrxDate').innerText = date;
+            document.getElementById('modalTrxNote').innerText = note || 'لا توجد ملاحظات';
+
+            if (pos && pos.trim().length > 0) {
+                document.getElementById('modalTrxPosRow').classList.remove('d-none');
+                document.getElementById('modalTrxPosName').innerText = pos;
+            } else {
+                document.getElementById('modalTrxPosRow').classList.add('d-none');
+            }
+
+            new bootstrap.Modal(document.getElementById('trxModal')).show();
+        }
+    </script>
+}

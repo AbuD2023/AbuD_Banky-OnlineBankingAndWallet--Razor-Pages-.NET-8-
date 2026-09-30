@@ -1,0 +1,595 @@
+@model Banky.Web.Models.FeeIndexViewModel
+@{
+    ViewData["Title"] = "إدارة الرسوم والعمولات المصرفية";
+}
+
+<div class="container-fluid py-4">
+    <!-- ترويسة الصفحة والأزرار الإجرائية -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">
+                <i class="fas fa-percentage text-primary me-2"></i>إدارة الرسوم والعمولات المصرفية
+            </h3>
+            <p class="text-muted mb-0 small">
+                إعداد وضبط سياسات العمولات والرسوم المقتطعة على التحويلات، الصرف، المشتريات، والسحب مع إمكانية تحديد رسوم خاصة لكل عملة أو رسوم عامة لكافة العملات.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            @if (User.IsInRole("Admin") || User.IsInRole("CurrencyOfficer"))
+            {
+                <button class="btn btn-primary shadow-sm rounded-3 fw-semibold" type="button" data-bs-toggle="modal" data-bs-target="#createFeeModal">
+                    <i class="fas fa-plus-circle me-1"></i>إضافة سياسة رسوم جديدة
+                </button>
+            }
+            <button class="btn btn-outline-primary shadow-sm rounded-3 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#calculatorCollapse">
+                <i class="fas fa-calculator me-1"></i>حاسبة اختبار الرسوم
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- حاسبة اختبار الرسوم المنهارة (Interactive Calculator) -->
+    <div class="collapse mb-4" id="calculatorCollapse">
+        <div class="card border-0 shadow-sm rounded-4 bg-light">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-primary">
+                    <i class="fas fa-calculator me-2"></i>حاسبة اختبار واحتساب الرسوم اللحظية
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">نوع العملية المصرفية</label>
+                        <select id="calcOpType" class="form-select rounded-3">
+                            <option value="TransferByPhone">تحويل لمشترك برقم الهاتف</option>
+                            <option value="SelfExchange">الصرف والمصارفة بين الحسابات</option>
+                            <option value="PosPayment">الدفع والمشتريات عبر نقاط البيع (POS)</option>
+                            <option value="Withdrawal">السحب النقدي</option>
+                            <option value="Deposit">إيداع وتغذية الرصيد</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">المبلغ المطلوب</label>
+                        <input type="number" id="calcAmount" class="form-control rounded-3" placeholder="مثال: 50000" value="10000" min="1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small">العملة</label>
+                        <select id="calcCurrency" class="form-select rounded-3">
+                            @if (Model.Currencies != null && Model.Currencies.Any())
+                            {
+                                foreach (var curr in Model.Currencies)
+                                {
+                                    <option value="@curr.Code">@curr.NameAr (@curr.Code)</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="YER">ريال يمني (YER)</option>
+                                <option value="SAR">ريال سعودي (SAR)</option>
+                                <option value="USD">دولار أمريكي (USD)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100 rounded-3 fw-bold" onclick="runFeeCalculation()">
+                            <i class="fas fa-play me-1"></i>احسب الرسوم
+                        </button>
+                    </div>
+                </div>
+
+                <!-- نتيجة الحسبة -->
+                <div id="calcResultBox" class="mt-3 p-3 bg-white rounded-3 border d-none">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">المبلغ الأساسي</span>
+                            <span class="fw-bold fs-5 text-dark" id="calcResAmount">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">الرسوم والعمولة</span>
+                            <span class="fw-bold fs-5 text-danger" id="calcResFee">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">الإجمالي المخصوم</span>
+                            <span class="fw-bold fs-5 text-success" id="calcResTotal">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">قاعدة الاحتساب المطبقة</span>
+                            <span class="badge bg-primary-subtle text-primary p-2 mt-1" id="calcResRule">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط تصفية وبحث السياسات حسب العملة والعملية -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fas fa-coins text-muted"></i></span>
+                        <select name="currency" class="form-select border-0 bg-light rounded-start-0" onchange="this.form.submit()">
+                            <option value="">كافة السياسات (جميع العملات والعامة)</option>
+                            <option value="ALL_GENERAL" selected="@(Model.SelectedCurrencyFilter == "ALL_GENERAL")">السياسات العامة الافتراضية (كافة العملات)</option>
+                            @if (Model.Currencies != null)
+                            {
+                                foreach (var c in Model.Currencies)
+                                {
+                                    <option value="@c.Code" selected="@(Model.SelectedCurrencyFilter == c.Code)">سياسات مخصصة لـ: @c.NameAr (@c.Code)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fas fa-filter text-muted"></i></span>
+                        <select name="opType" class="form-select border-0 bg-light rounded-start-0" onchange="this.form.submit()">
+                            <option value="">كافة أنواع العمليات</option>
+                            <option value="TransferByPhone" selected="@(Model.SelectedOperationFilter == "TransferByPhone")">تحويل لمشترك برقم الهاتف</option>
+                            <option value="SelfExchange" selected="@(Model.SelectedOperationFilter == "SelfExchange")">الصرف والمصارفة بين الحسابات</option>
+                            <option value="PosPayment" selected="@(Model.SelectedOperationFilter == "PosPayment")">الدفع والمشتريات عبر نقاط البيع (POS)</option>
+                            <option value="Withdrawal" selected="@(Model.SelectedOperationFilter == "Withdrawal")">السحب النقدي</option>
+                            <option value="Deposit" selected="@(Model.SelectedOperationFilter == "Deposit")">إيداع وتغذية الرصيد</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4 text-start">
+                    @if (!string.IsNullOrEmpty(Model.SelectedCurrencyFilter) || !string.IsNullOrEmpty(Model.SelectedOperationFilter))
+                    {
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-3">
+                            <i class="fas fa-times me-1"></i>إلغاء الفلترة
+                        </a>
+                    }
+                    <span class="text-muted small ms-2">إجمالي السياسات: <strong>@Model.Fees.Count</strong></span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- شبكة بطاقات سياسات الرسوم (Fee Policies Grid) -->
+    <div class="row g-4">
+        @if (Model.Fees != null && Model.Fees.Any())
+        {
+            foreach (var fee in Model.Fees)
+            {
+                string iconClass = fee.OperationType switch
+                {
+                    "TransferByPhone" => "fa-paper-plane text-primary",
+                    "SelfExchange" => "fa-exchange-alt text-warning",
+                    "PosPayment" => "fa-store text-purple",
+                    "Deposit" => "fa-arrow-down text-success",
+                    "Withdrawal" => "fa-money-bill-wave text-danger",
+                    _ => "fa-cog text-secondary"
+                };
+
+                string badgeClass = fee.IsActive ? "bg-success-subtle text-success border border-success" : "bg-danger-subtle text-danger border border-danger";
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 transition-hover">
+                        <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-3 p-3 bg-light shadow-xs text-center" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas @iconClass fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0 text-dark">@fee.NameAr</h5>
+                                    <span class="badge bg-light text-muted small border">@fee.OperationTypeNameAr</span>
+                                </div>
+                            </div>
+                            <span class="badge @badgeClass rounded-pill px-3 py-2">
+                                @(fee.IsActive ? "مفعل" : "معطل")
+                            </span>
+                        </div>
+
+                        <div class="card-body px-4 py-3">
+                            <!-- شارة نطاق العملة المطبقة -->
+                            <div class="mb-3">
+                                @if (string.IsNullOrEmpty(fee.CurrencyCode))
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-3">
+                                        <i class="fas fa-globe me-1"></i>كافة العملات (سياسة عامة افتراضية)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-3">
+                                        <i class="fas fa-coins me-1"></i>خاص بعملة: <strong>@fee.CurrencyCode</strong>
+                                    </span>
+                                }
+                            </div>
+
+                            <p class="text-muted small mb-3">
+                                @(string.IsNullOrWhiteSpace(fee.Description) ? "لا يوجد وصف مدخل لهذه السياسة" : fee.Description)
+                            </p>
+
+                            <div class="p-3 bg-light rounded-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small">نوع الرسوم:</span>
+                                    <span class="fw-bold small text-dark">@fee.FeeTypeNameAr</span>
+                                </div>
+                                
+                                @if (fee.FeeType == "Percentage" || fee.FeeType == "PercentageAndFixed")
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted small">النسبة المئوية:</span>
+                                        <span class="fw-bold text-primary">@fee.Percentage.ToString("0.####")%</span>
+                                    </div>
+                                }
+
+                                @if (fee.FeeType == "Fixed" || fee.FeeType == "PercentageAndFixed")
+                                {
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted small">المبلغ المقطوع:</span>
+                                        <span class="fw-bold text-primary">@fee.FixedAmount.ToString("N2") @(fee.CurrencyCode ?? "")</span>
+                                    </div>
+                                }
+
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small">الحد الأدنى للرسوم:</span>
+                                    <span class="fw-bold small">@(fee.MinFee > 0 ? $"{fee.MinFee:N2} {(fee.CurrencyCode ?? "")}" : "لا يوجد")</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small">الحد الأقصى (السقف):</span>
+                                    <span class="fw-bold small">@(fee.MaxFee > 0 ? $"{fee.MaxFee:N2} {(fee.CurrencyCode ?? "")}" : "لا يوجد")</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.75rem;">
+                                <span>آخر تعديل: @fee.UpdatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                                <span>بواسطة: @(fee.UpdatedBy ?? "Admin")</span>
+                            </div>
+                        </div>
+
+                        <div class="card-footer bg-white border-0 pb-4 px-4 pt-0">
+                            <div class="d-flex gap-2">
+                                @if (User.IsInRole("Admin") || User.IsInRole("CurrencyOfficer"))
+                                {
+                                    <button class="btn btn-outline-primary flex-grow-1 rounded-3 fw-semibold" onclick="openEditFeeModal(@fee.Id)">
+                                        <i class="fas fa-edit me-1"></i>تعديل
+                                    </button>
+                                    @if (!string.IsNullOrEmpty(fee.CurrencyCode))
+                                    {
+                                        <button class="btn btn-outline-danger rounded-3" title="حذف السياسة المخصصة" onclick="confirmDeleteFee(@fee.Id, '@fee.NameAr')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12 text-center py-5">
+                <div class="p-5 bg-white rounded-4 shadow-sm">
+                    <i class="fas fa-percentage text-muted fa-4x mb-3"></i>
+                    <h5 class="fw-bold">لم يتم العثور على أي سياسات رسوم متطابقة</h5>
+                    <p class="text-muted">يمكنك إضافة سياسة رسوم جديدة أو إلغاء الفلترة لعرض السياسات المتاحة.</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal إضافة سياسة رسوم جديدة لعملية وعملة محددة -->
+<div class="modal fade" id="createFeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0 rounded-top-4">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-plus-circle me-2"></i>إضافة سياسة رسوم وعمولة جديدة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Create" method="post" id="createFeeForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">نوع العملية المصرفية <span class="text-danger">*</span></label>
+                            <select name="OperationType" class="form-select rounded-3" required>
+                                <option value="TransferByPhone">تحويل لمشترك برقم الهاتف</option>
+                                <option value="SelfExchange">الصرف والمصارفة بين الحسابات</option>
+                                <option value="PosPayment">الدفع والمشتريات عبر نقاط البيع (POS)</option>
+                                <option value="Withdrawal">السحب النقدي</option>
+                                <option value="Deposit">إيداع وتغذية الرصيد</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">العملة المستهدفة</label>
+                            <select name="CurrencyCode" class="form-select rounded-3">
+                                <option value="">كافة العملات (سياسة عامة افتراضية)</option>
+                                @if (Model.Currencies != null)
+                                {
+                                    foreach (var curr in Model.Currencies)
+                                    {
+                                        <option value="@curr.Code">@curr.NameAr (@curr.Code)</option>
+                                    }
+                                }
+                            </select>
+                            <small class="text-muted" style="font-size: 0.72rem;">اختر عملة لتحديد رسوم مخصصة لها</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">اسم السياسة بالعربية <span class="text-danger">*</span></label>
+                        <input type="text" name="NameAr" class="form-control rounded-3" placeholder="مثال: رسوم التحويل بالريال اليمني" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">طريقة احتساب الرسوم <span class="text-danger">*</span></label>
+                        <select id="createFeeType" name="FeeType" class="form-select rounded-3" onchange="toggleCreateFeeInputs()">
+                            <option value="Percentage">نسبة مئوية من المبلغ (%)</option>
+                            <option value="Fixed">مبلغ مقطوع ثابت</option>
+                            <option value="PercentageAndFixed">نسبة مئوية + مبلغ مقطوع ثابت</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6" id="createPercCol">
+                            <label class="form-label fw-semibold small">النسبة المئوية (%)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.0001" name="Percentage" class="form-control rounded-start-3" min="0" max="100" value="0.5" />
+                                <span class="input-group-text rounded-end-3">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="createFixCol" style="display: none;">
+                            <label class="form-label fw-semibold small">المبلغ الثابت</label>
+                            <input type="number" step="0.01" name="FixedAmount" class="form-control rounded-3" min="0" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">الحد الأدنى للرسوم</label>
+                            <input type="number" step="0.01" name="MinFee" class="form-control rounded-3" min="0" placeholder="0 = لا يوجد" value="0" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">الحد الأقصى للرسوم (السقف)</label>
+                            <input type="number" step="0.01" name="MaxFee" class="form-control rounded-3" min="0" placeholder="0 = لا يوجد" value="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">بيان ووصف السياسة</label>
+                        <textarea name="Description" class="form-control rounded-3" rows="2" placeholder="أدخل تفاصيل السياسة وشروطها..."></textarea>
+                    </div>
+
+                    <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
+                        <input type="hidden" name="IsActive" value="false" />
+                        <input class="form-check-input ms-0" type="checkbox" name="IsActive" value="true" checked style="width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label fw-bold text-dark">تفعيل السياسة مباشرة</label>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-3 px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold">
+                        <i class="fas fa-save me-1"></i>حفظ السياسة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تعديل سياسة الرسوم -->
+<div class="modal fade" id="editFeeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header bg-primary text-white border-0 rounded-top-4">
+                <h5 class="modal-title fw-bold" id="editFeeModalTitle">
+                    <i class="fas fa-edit me-2"></i>تعديل سياسة الرسوم والعمولة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Edit" method="post" id="editFeeForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editFeeId" name="Id" />
+                <input type="hidden" id="editOperationType" name="OperationType" />
+
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">اسم السياسة</label>
+                        <input type="text" id="editNameAr" name="NameAr" class="form-control rounded-3" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">طريقة احتساب الرسوم <span class="text-danger">*</span></label>
+                        <select id="editFeeType" name="FeeType" class="form-select rounded-3" onchange="toggleFeeInputs()">
+                            <option value="Percentage">نسبة مئوية من المبلغ (%)</option>
+                            <option value="Fixed">مبلغ مقطوع ثابت</option>
+                            <option value="PercentageAndFixed">نسبة مئوية + مبلغ مقطوع ثابت</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6" id="percentageCol">
+                            <label class="form-label fw-semibold small">النسبة المئوية (%)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.0001" id="editPercentage" name="Percentage" class="form-control rounded-start-3" min="0" max="100" />
+                                <span class="input-group-text rounded-end-3">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="fixedAmountCol">
+                            <label class="form-label fw-semibold small">المبلغ الثابت</label>
+                            <input type="number" step="0.01" id="editFixedAmount" name="FixedAmount" class="form-control rounded-3" min="0" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">الحد الأدنى للرسوم</label>
+                            <input type="number" step="0.01" id="editMinFee" name="MinFee" class="form-control rounded-3" min="0" placeholder="0 = لا يوجد" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold small">الحد الأقصى للرسوم (السقف)</label>
+                            <input type="number" step="0.01" id="editMaxFee" name="MaxFee" class="form-control rounded-3" min="0" placeholder="0 = لا يوجد" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">بيان ووصف السياسة</label>
+                        <textarea id="editDescription" name="Description" class="form-control rounded-3" rows="2"></textarea>
+                    </div>
+
+                    <div class="form-check form-switch p-0 d-flex align-items-center gap-3">
+                        <input type="hidden" id="editIsActiveHidden" name="IsActive" value="false" />
+                        <input class="form-check-input ms-0" type="checkbox" id="editIsActive" name="IsActive" value="true" style="width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label fw-bold text-dark" for="editIsActive">تفعيل اقتطاع الرسوم لهذه العملية</label>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light rounded-3 px-4" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 fw-bold">
+                        <i class="fas fa-save me-1"></i>حفظ التعديلات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- نموذج حذف سياسة رسوم مخصصة -->
+<form asp-action="Delete" method="post" id="deleteFeeForm" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteFeeId" />
+</form>
+
+@section Scripts {
+<script>
+    function toggleFeeInputs() {
+        const type = document.getElementById('editFeeType').value;
+        const percCol = document.getElementById('percentageCol');
+        const fixCol = document.getElementById('fixedAmountCol');
+
+        if (type === 'Percentage') {
+            percCol.style.display = 'block';
+            fixCol.style.display = 'none';
+        } else if (type === 'Fixed') {
+            percCol.style.display = 'none';
+            fixCol.style.display = 'block';
+        } else {
+            percCol.style.display = 'block';
+            fixCol.style.display = 'block';
+        }
+    }
+
+    function toggleCreateFeeInputs() {
+        const type = document.getElementById('createFeeType').value;
+        const percCol = document.getElementById('createPercCol');
+        const fixCol = document.getElementById('createFixCol');
+
+        if (type === 'Percentage') {
+            percCol.style.display = 'block';
+            fixCol.style.display = 'none';
+        } else if (type === 'Fixed') {
+            percCol.style.display = 'none';
+            fixCol.style.display = 'block';
+        } else {
+            percCol.style.display = 'block';
+            fixCol.style.display = 'block';
+        }
+    }
+
+    async function openEditFeeModal(id) {
+        try {
+            const res = await fetch(`/Fees/GetFeeJson?id=${id}`);
+            const result = await res.json();
+
+            if (!result.success || !result.data) {
+                alert(result.message || 'تعذر جلب بيانات السياسة');
+                return;
+            }
+
+            const fee = result.data;
+            document.getElementById('editFeeId').value = fee.id;
+            document.getElementById('editOperationType').value = fee.operationType;
+            document.getElementById('editNameAr').value = fee.nameAr;
+            document.getElementById('editFeeType').value = fee.feeType;
+            document.getElementById('editPercentage').value = fee.percentage;
+            document.getElementById('editFixedAmount').value = fee.fixedAmount;
+            document.getElementById('editMinFee').value = fee.minFee;
+            document.getElementById('editMaxFee').value = fee.maxFee;
+            document.getElementById('editDescription').value = fee.description || '';
+
+            // Normalize boolean-like values for the checkbox
+            const isActive = fee.isActive === true || fee.isActive === 'true' || fee.isActive === 'True' || fee.isActive === 1 || fee.isActive === '1';
+            const editCheckbox = document.getElementById('editIsActive');
+            const editHidden = document.getElementById('editIsActiveHidden');
+            if (editCheckbox) {
+                editCheckbox.checked = !!isActive;
+                // keep hidden input in sync (the hidden input ensures a value is posted when unchecked)
+                if (editHidden) editHidden.value = editCheckbox.checked ? 'true' : 'false';
+
+                // update hidden input on user toggle
+                editCheckbox.addEventListener('change', function (e) {
+                    if (editHidden) editHidden.value = e.target.checked ? 'true' : 'false';
+                });
+            }
+
+            toggleFeeInputs();
+
+            const modal = new bootstrap.Modal(document.getElementById('editFeeModal'));
+            modal.show();
+        } catch (e) {
+            alert('حدث خطأ أثناء تحميل بيانات السياسة');
+        }
+    }
+
+    function confirmDeleteFee(id, name) {
+        if (confirm(`هل أنت متأكد من رغبتك في حذف سياسة الرسوم المخصصة (${name})؟\nعند الحذف، سيتم تطبيق السياسة العامة الافتراضية لهذه العملة.`)) {
+            document.getElementById('deleteFeeId').value = id;
+            document.getElementById('deleteFeeForm').submit();
+        }
+    }
+
+    async function runFeeCalculation() {
+        const type = document.getElementById('calcOpType').value;
+        const amount = document.getElementById('calcAmount').value;
+        const currency = document.getElementById('calcCurrency').value;
+
+        if (!amount || amount <= 0) {
+            alert('يرجى إدخال مبلغ صحيح');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/Fees/CalculatePreview?type=${encodeURIComponent(type)}&amount=${amount}&currency=${encodeURIComponent(currency)}`);
+            const json = await res.json();
+
+            if (json.success && json.data) {
+                const data = json.data;
+                document.getElementById('calcResAmount').innerText = `${data.originalAmount.toLocaleString()} ${data.currencySymbol}`;
+                document.getElementById('calcResFee').innerText = `${data.feeAmount.toLocaleString()} ${data.currencySymbol}`;
+                document.getElementById('calcResTotal').innerText = `${data.totalAmountToDebit.toLocaleString()} ${data.currencySymbol}`;
+                document.getElementById('calcResRule').innerText = data.feeRuleDescription || 'معفاة';
+                document.getElementById('calcResultBox').classList.remove('d-none');
+            } else {
+                alert(json.message || 'تعذر حساب الرسوم');
+            }
+        } catch (e) {
+            alert('حدث خطأ أثناء الاتصال بالخادم');
+        }
+    }
+</script>
+}

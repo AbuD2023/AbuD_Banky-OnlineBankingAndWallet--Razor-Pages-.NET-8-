@@ -3,14 +3,60 @@ using System.ComponentModel.DataAnnotations;
 namespace Banky.Web.Models
 {
     /// <summary>
-    /// نموذج تفاصيل العميل ومحافظه ونقاط بيعه وعملياته
+    /// نموذج تفاصيل العميل ومحافظه ونقاط بيعه وعملياته وأجهزته
     /// </summary>
     public class ClientDetailsModel
     {
         public ClientProfileModel Client { get; set; } = new();
         public List<WalletModel> Wallets { get; set; } = new();
         public List<PosPointModel> PosPoints { get; set; } = new();
+        public List<ClientDeviceModel> Devices { get; set; } = new();
         public List<TransactionModel> RecentTransactions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// نموذج جهاز العميل
+    /// </summary>
+    public class ClientDeviceModel
+    {
+        public Guid Id { get; set; }
+        public Guid? ClientId { get; set; }
+        public string? DeviceId { get; set; }
+        public string? DeviceName { get; set; }
+        public bool MainDevice { get; set; }
+        public bool IsApproved { get; set; }
+        public string? ApprovedBy { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+        public string? IpAddress { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    /// <summary>
+    /// نموذج تعديل بيانات العميل من الإدارة
+    /// </summary>
+    public class AdminUpdateClientModel
+    {
+        [Required(ErrorMessage = "الاسم الرباعي مطلوب")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+        [EmailAddress(ErrorMessage = "صيغة البريد الإلكتروني غير صحيحة")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "رقم الهاتف مطلوب")]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "حالة التوثيق مطلوبة")]
+        public string KycStatus { get; set; } = "NotSubmitted";
+
+        public bool IsBlocked { get; set; }
+
+        public string? BlockedMessage { get; set; }
+
+        public bool HideFullName { get; set; }
+
+        public bool HidePhoneOnPos { get; set; }
     }
 
     /// <summary>

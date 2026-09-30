@@ -1,0 +1,99 @@
+@model Banky.Web.Models.AdminUpdateClientModel
+@{
+    ViewData["Title"] = "تعديل بيانات العميل";
+    var clientId = ViewBag.ClientId;
+}
+
+<div class="card bg-body rounded-4 p-4 shadow-sm" style="max-width: 800px; margin: 0 auto;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a asp-action="Details" asp-route-id="@clientId" class="btn btn-outline-secondary btn-sm mb-2">
+                <i class="fa-solid fa-arrow-right me-1"></i> العودة لتفاصيل العميل
+            </a>
+            <h4 class="fw-bold mb-0"><i class="fa-solid fa-user-pen text-primary me-2"></i> تعديل بيانات العميل</h4>
+        </div>
+    </div>
+
+    <form asp-action="Edit" asp-route-id="@clientId" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label asp-for="FullName" class="form-label fw-bold small">الاسم الرباعي الكامل</label>
+                <input asp-for="FullName" class="form-control" required />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label fw-bold small">البريد الإلكتروني</label>
+                <input asp-for="Email" type="email" class="form-control font-monospace" required />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Phone" class="form-label fw-bold small">رقم الهاتف الأساسي</label>
+                <input asp-for="Phone" class="form-control font-monospace" dir="ltr" required />
+                <span asp-validation-for="Phone" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="KycStatus" class="form-label fw-bold small">حالة توثيق الهوية (KYC)</label>
+                <select asp-for="KycStatus" class="form-select">
+                    <option value="NotSubmitted">غير مرفوع (NotSubmitted)</option>
+                    <option value="PendingApproval">قيد المراجعة (PendingApproval)</option>
+                    <option value="Approved">موثق ومعتمد (Approved)</option>
+                    <option value="Rejected">مرفوض (Rejected)</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label fw-bold small">حالة الحساب العامة</label>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" asp-for="IsBlocked" id="isBlockedCheck" onchange="toggleBlockedReason()">
+                    <label class="form-check-label fw-semibold text-danger" for="isBlockedCheck">حظر الحساب</label>
+                </div>
+            </div>
+
+            <div class="col-md-12" id="blockedReasonBox" style="display: @(Model.IsBlocked ? "block" : "none");">
+                <label asp-for="BlockedMessage" class="form-label fw-bold small text-danger">سبب الحظر (يظهر للعميل عند فتح التطبيق)</label>
+                <input asp-for="BlockedMessage" class="form-control" placeholder="مخالفة الشروط والأحكام..." />
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check form-switch p-3 border rounded-3">
+                    <input class="form-check-input" type="checkbox" asp-for="HideFullName" id="hideFullNameCheck">
+                    <label class="form-check-label fw-semibold" for="hideFullNameCheck">
+                        إخفاء الاسم الكامل (عرض الحروف الأولى فقط)
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check form-switch p-3 border rounded-3">
+                    <input class="form-check-input" type="checkbox" asp-for="HidePhoneOnPos" id="hidePhoneCheck">
+                    <label class="form-check-label fw-semibold" for="hidePhoneCheck">
+                        إخفاء الهاتف في نقاط البيع (استخدام رقم بديل)
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="d-flex justify-content-end gap-2">
+            <a asp-action="Details" asp-route-id="@clientId" class="btn btn-secondary px-4">إلغاء</a>
+            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                <i class="fa-solid fa-floppy-disk me-1"></i> حفظ التعديلات
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleBlockedReason() {
+            const isBlocked = document.getElementById('isBlockedCheck').checked;
+            document.getElementById('blockedReasonBox').style.display = isBlocked ? 'block' : 'none';
+        }
+    </script>
+}

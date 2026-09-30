@@ -131,42 +131,106 @@
 
         <!-- القائمة الرئيسية -->
         <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item">
-                <a asp-controller="Dashboard" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Dashboard" ? "active" : "")">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>الرئيسية والإحصاءات</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a asp-controller="Kyc" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Kyc" ? "active" : "")">
-                    <i class="fa-solid fa-id-card"></i>
-                    <span>توثيق الهويات (KYC)</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a asp-controller="Clients" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Clients" ? "active" : "")">
-                    <i class="fa-solid fa-users"></i>
-                    <span>العملاء والمحافظ</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a asp-controller="Currencies" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Currencies" ? "active" : "")">
-                    <i class="fa-solid fa-coins"></i>
-                    <span>إدارة العملات</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a asp-controller="Pos" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pos" ? "active" : "")">
-                    <i class="fa-solid fa-store"></i>
-                    <span>نقاط البيع (POS)</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a asp-controller="Transactions" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Transactions" ? "active" : "")">
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-                    <span>سجل العمليات والتحويلات</span>
-                </a>
-            </li>
+            @if (User.IsInRole("Admin") || User.IsInRole("Auditor"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Dashboard" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Dashboard" ? "active" : "")">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <span>الرئيسية والإحصاءات</span>
+                    </a>
+                </li>
+            }
+
+            @* مكتب الصندوق والسحب والإيداع (لموظفي الصندوق والمدير العام) *@
+            @if (User.IsInRole("Admin") || User.IsInRole("Teller") || User.IsInRole("TellerDeposit") || User.IsInRole("TellerWithdrawal"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Teller" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Teller" ? "active" : "")">
+                        <i class="fa-solid fa-cash-register text-success"></i>
+                        <span>مكتب الصندوق (السحب والإيداع)</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("KycOfficer") || User.IsInRole("Auditor"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Kyc" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Kyc" ? "active" : "")">
+                        <i class="fa-solid fa-id-card"></i>
+                        <span>توثيق الهويات (KYC)</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("KycOfficer") || User.IsInRole("Auditor"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Clients" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Clients" ? "active" : "")">
+                        <i class="fa-solid fa-users"></i>
+                        <span>العملاء والمحافظ</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("CurrencyOfficer"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Currencies" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Currencies" ? "active" : "")">
+                        <i class="fa-solid fa-coins"></i>
+                        <span>إدارة العملات</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("CurrencyOfficer"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Fees" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Fees" ? "active" : "")">
+                        <i class="fa-solid fa-percentage text-warning"></i>
+                        <span>إدارة الرسوم والعمولات</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("CurrencyOfficer"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Pos" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Pos" ? "active" : "")">
+                        <i class="fa-solid fa-store"></i>
+                        <span>نقاط البيع (POS)</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("Auditor") || User.IsInRole("KycOfficer") || User.IsInRole("CurrencyOfficer"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Transactions" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Transactions" ? "active" : "")">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                        <span>سجل العمليات والتحويلات</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="Staff" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Staff" ? "active" : "")">
+                        <i class="fa-solid fa-user-gear"></i>
+                        <span>إدارة الموظفين والصلاحيات</span>
+                    </a>
+                </li>
+            }
+
+            @if (User.IsInRole("Admin") || User.IsInRole("Auditor"))
+            {
+                <li class="nav-item">
+                    <a asp-controller="AuditLogs" asp-action="Index" class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AuditLogs" ? "active" : "")">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        <span>سجل التدقيق والأنشطة</span>
+                    </a>
+                </li>
+            }
         </ul>
 
         <!-- زر تبديل الوضع الداكن/الفاتح والخروج -->
@@ -206,8 +270,16 @@
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
                     <div>
-                        <div class="fw-bold small">@(User.Identity?.Name ?? "مدير النظام")</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">مسؤول النظام العام</div>
+                        <div class="fw-bold small">@(User.Identity?.Name ?? "المستخدم")</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            @(User.IsInRole("Admin") ? "مسؤول النظام العام" : 
+                              User.IsInRole("Teller") ? "موظف الصندوق (سحب وإيداع)" : 
+                              User.IsInRole("TellerDeposit") ? "موظف الصندوق (إيداع وتغذية)" : 
+                              User.IsInRole("TellerWithdrawal") ? "موظف الصندوق (سحب نقدي)" : 
+                              User.IsInRole("KycOfficer") ? "مسؤول التحقق وتوثيق الهويات" : 
+                              User.IsInRole("CurrencyOfficer") ? "مسؤول العملات والرسوم" : 
+                              User.IsInRole("Auditor") ? "مدقق مالي وإداري" : "موظف في النظام")
+                        </div>
                     </div>
                 </div>
             </div>
