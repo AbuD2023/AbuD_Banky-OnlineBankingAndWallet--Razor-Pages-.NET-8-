@@ -1,4 +1,4 @@
-# AbuD Banky | Banking & Digital Wallet Platform
+# #AbuD2023 Banky | Banking & Digital Wallet Platform
 
 منصة مصرفية تعليمية مبنية على **ASP.NET Core و.NET 8**، تتكون من واجهة API لإدارة الحسابات والمحافظ والعمليات المالية، ولوحة ويب إدارية منفصلة. هذا المستودع خاص بالـ **ASP.NET API ولوحة الإدارة**؛ تطبيق الهاتف Flutter موجود في مستودع مستقل.
 
@@ -6,7 +6,7 @@
 
 ## نظرة عامة
 
-يقدم AbuD Banky نموذجًا عمليًا لمنظومة مصرفية متعددة الواجهات. تتولى `Banky.API` منطق الأعمال والتخزين والمصادقة، بينما تتصل بها `Banky.Web` لتقديم لوحة إدارة عبر MVC وRazor Views. كما يمكن لتطبيق Flutter المستقل استهلاك API نفسها.
+يقدم #AbuD2023 Banky نموذجًا عمليًا لمنظومة مصرفية متعددة الواجهات. تتولى `Banky.API` منطق الأعمال والتخزين والمصادقة، بينما تتصل بها `Banky.Web` لتقديم لوحة إدارة عبر MVC وRazor Views. كما يمكن لتطبيق Flutter المستقل استهلاك API نفسها.
 
 ```mermaid
 flowchart LR
@@ -110,7 +110,7 @@ flutter pub get
 
 ## English
 
-**AbuD Banky** is an educational banking and digital-wallet platform built with ASP.NET Core and .NET 8. This repository contains a REST API (`Banky.API`) backed by SQL Server and an MVC/Razor Views administration portal (`Banky.Web`). A separate Flutter mobile client consumes the API.
+**#AbuD2023 Banky** is an educational banking and digital-wallet platform built with ASP.NET Core and .NET 8. This repository contains a REST API (`Banky.API`) backed by SQL Server and an MVC/Razor Views administration portal (`Banky.Web`). A separate Flutter mobile client consumes the API.
 
 ### Highlights
 
@@ -138,7 +138,7 @@ Configure the SQL Server connection, a strong JWT signing key, and the web porta
 
 ### Related project
 
-The mobile client is maintained separately: [AbuD Banky Flutter Mobile App](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone). It requires a reachable, compatible `Banky.API` instance.
+The mobile client is maintained separately: [#AbuD2023 Banky Flutter Mobile App](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone). It requires a reachable, compatible `Banky.API` instance.
 
 ### GitHub discovery
 
