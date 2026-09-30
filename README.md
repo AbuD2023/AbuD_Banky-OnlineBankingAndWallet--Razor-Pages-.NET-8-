@@ -1,94 +1,133 @@
-# AbuD-Banky — Online Banking & Wallet (Razor Pages, .NET 8)
+# AbuD Banky | Banking & Digital Wallet Platform
 
-نسخة عربية / Arabic version below
+منصة مصرفية تعليمية مبنية على **ASP.NET Core و.NET 8**، تتكون من واجهة API لإدارة الحسابات والمحافظ والعمليات المالية، ولوحة ويب إدارية منفصلة. هذا المستودع خاص بالـ **ASP.NET API ولوحة الإدارة**؛ تطبيق الهاتف Flutter موجود في مستودع مستقل.
 
----
+[مستودع تطبيق Flutter](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone) · [الترخيص](LICENSE) · [المساهمة](CONTRIBUTING.md)
 
-## نبذة سريعة
-مشروع "AbuD-Banky" هو نظام ويب تعليمي/تطبيقي لإدارة الحسابات البنكية والمحفظة الرقمية، مبني باستخدام `ASP.NET Core Razor Pages` و`.NET 8`. المشروع يظهر مثالاً عملياً على كيفية ربط واجهة المستخدم (Razor Pages) بواجهة API منفصلة لإدارة العمليات المالية.
+## نظرة عامة
 
-## الميزات
-- واجهة ويب مبنية بـ `Razor Pages` قابلة للتوسع.
-- API منفصلة للتعامل مع العمليات والمحفظة.
-- إعدادات مرنة عبر `appsettings.json` (انظر `ApiSettings:BaseUrl`).
-- جاهز للتشغيل محلياً ونشر (Docker / Azure) مع تعديلات بسيطة.
+يقدم AbuD Banky نموذجًا عمليًا لمنظومة مصرفية متعددة الواجهات. تتولى `Banky.API` منطق الأعمال والتخزين والمصادقة، بينما تتصل بها `Banky.Web` لتقديم لوحة إدارة عبر MVC وRazor Views. كما يمكن لتطبيق Flutter المستقل استهلاك API نفسها.
 
-## Quick overview (English)
-AbuD-Banky is a sample banking & wallet application using `ASP.NET Core Razor Pages` and `.NET 8`. It demonstrates a front-end Razor Pages site (`Banky.Web`) communicating with an API (`Banky.API`).
+```mermaid
+flowchart LR
+    Mobile[Flutter mobile app<br/>separate repository] --> API[Banky.API<br/>ASP.NET Core Web API]
+    Web[Banky.Web<br/>MVC admin portal] --> API
+    API --> DB[(SQL Server)]
+```
 
----
+## الوظائف
 
-## المتطلبات / Requirements
+- التسجيل وتسجيل الدخول والمصادقة باستخدام JWT، مع تدفقات الحساب والتحقق من الهوية KYC.
+- إنشاء المحافظ وعرض الأرصدة والعملات المتاحة.
+- التحويلات بين المستخدمين عبر رقم الهاتف، مع معاينة الرسوم.
+- التحويل بين محافظ المستخدم وحساب الصرف، إضافة إلى مدفوعات وإدارة نقاط البيع POS.
+- سجل المعاملات، وإدارة العملاء والرسوم والعمليات الإدارية وعمليات الصراف.
+- لوحة ويب إدارية تتصل بالـ API، مع مصادقة ملفات تعريف الارتباط.
+- توثيق API تفاعلي عبر Swagger.
+
+## مكونات المستودع
+
+| المسار | الدور |
+| --- | --- |
+| `Banky.API` | REST API، خدمات الأعمال، المصادقة، وطبقة البيانات |
+| `Banky.Web` | لوحة ويب إدارية باستخدام ASP.NET Core MVC وRazor Views |
+| `Banky.slnx` | ملف الحل لتجميع مشاريع .NET |
+
+## المتطلبات
+
 - .NET 8 SDK
-- (اختياري) قاعدة بيانات: SQL Server / SQLite حسب تكوين المشروع
-- `dotnet` CLI
+- SQL Server متاح محليًا أو عبر اتصال مهيأ
+- Git
+
+## التشغيل محليًا
+
+استنسخ مستودع الخادم:
+
+```bash
+git clone https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-.git
+cd AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-
+dotnet restore Banky.slnx
+```
+
+شغّل API في نافذة طرفية:
+
+```bash
+dotnet run --project Banky.API
+```
+
+ثم شغّل لوحة الإدارة في نافذة أخرى:
+
+```bash
+dotnet run --project Banky.Web
+```
+
+استخدم روابط التشغيل التي يعرضها `dotnet run`. توثيق API متاح على `/swagger` ضمن عنوان API.
+
+## الإعداد والاتصال
+
+- اضبط `ConnectionStrings:DefaultConnection` ليتصل API بقاعدة SQL Server الخاصة ببيئتك.
+- اضبط `Jwt:Key` بقيمة سرية قوية وفريدة، واضبط `ApiSettings:BaseUrl` في إعدادات `Banky.Web` ليشير إلى عنوان API.
+- استخدم متغيرات البيئة أو مخزن أسرار .NET للقيم الحساسة، ولا ترفع كلمات المرور أو مفاتيح JWT أو connection strings إلى GitHub.
+- لتشغيل تطبيق الهاتف مع هذا الخادم، غيّر عنوان API في `lib/core/api_constants.dart` بمستودع Flutter إلى عنوان يمكن للهاتف أو المحاكي الوصول إليه.
+
+## تطبيق الهاتف المرتبط
+
+تطبيق Flutter هو **عميل منفصل** وليس جزءًا من هذا الحل .NET. يتطلب تشغيل وظائفه وجود نسخة متاحة ومتوافقة من `Banky.API`.
+
+- [فتح مستودع تطبيق Flutter](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone)
+- [فتح مستودع ASP.NET الحالي](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-)
+
+## الأمان والاستخدام
+
+هذا المشروع نموذج تعليمي/تطبيقي، وليس نظامًا مصرفيًا معتمدًا لمعالجة أموال حقيقية. يتطلب النشر الفعلي مراجعة أمنية مستقلة، وإعداد HTTPS وCORS وقيم الأسرار، والتحقق من المصادقة والصلاحيات والعمليات المالية والبيانات الشخصية. لا تستخدم بيانات عملاء حقيقية.
+
+## المساهمة والترخيص
+
+راجع [CONTRIBUTING.md](CONTRIBUTING.md) لإعداد بيئة التطوير وإرسال التغييرات. المشروع مرخص وفق MIT؛ راجع [LICENSE](LICENSE).
 
 ---
 
-## تشغيل محلي سريع (Quick start)
-1. استنساخ المستودع:
-   ```bash
-   git clone <repo-url>
-   cd Banky
-   ```
-2. تشغيل الـ API (إذا كان موجودًا في الحل):
-   ```bash
-   dotnet run --project Banky.API
-   ```
-   افتراضيًا عنوان API يمكن تغييره في `Banky.Web/appsettings.json` تحت `ApiSettings:BaseUrl`.
+## English
 
-3. تشغيل الواجهة (Razor Pages):
-   ```bash
-   dotnet run --project Banky.Web
-   ```
+**AbuD Banky** is an educational banking and digital-wallet platform built with ASP.NET Core and .NET 8. This repository contains a REST API (`Banky.API`) backed by SQL Server and an MVC/Razor Views administration portal (`Banky.Web`). A separate Flutter mobile client consumes the API.
 
-4. افتح المستعرض وتوجه إلى العنوان المعروض (عادة `https://localhost:5xxx`).
+### Highlights
 
----
+- JWT authentication, account workflows, and KYC submission.
+- Multi-currency wallets, phone-based transfers, fee previews, and self-exchange.
+- POS point management and payments, transaction history, and administrative/teller workflows.
+- Swagger API documentation and a separate cookie-authenticated web portal.
 
-## إعدادات مهمة
-- `Banky.Web/appsettings.json` يحتوي على `ApiSettings:BaseUrl` لتوجيه طلبات الويب إلى خدمة الـ API.
-- استخدم متغيرات البيئة أو `secrets` لتخزين connection strings وبيانات حساسة قبل النشر.
+### Quick start
 
----
+Requirements: .NET 8 SDK and SQL Server. Clone the repository and start the API and web portal in separate terminals:
 
-## تطوير ومساهمة
-- اقرأ `CONTRIBUTING.md` لسياسة المساهمة وخطوات إعداد بيئة التطوير.
-- اتبع نمط الفروع: `feature/<short>`, `fix/<short>`.
+```bash
+git clone https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-.git
+cd AbuD_Banky-OnlineBankingAndWallet--Razor-Pages-.NET-8-
+dotnet restore Banky.slnx
+dotnet run --project Banky.API
+```
 
----
+```bash
+dotnet run --project Banky.Web
+```
 
-## تحسين الاكتشاف على GitHub (SEO tips)
-- استخدم وصفًا قصيرًا واضحًا في حقل description في GitHub: "AbuD-Banky — Razor Pages banking & wallet example (ASP.NET Core, .NET 8)".
-- أضف Topics عبر واجهة GitHub: `dotnet`, `dotnet8`, `aspnet-core`, `razor-pages`, `csharp`, `webapi`, `fintech`, `banking`, `wallet`, `tutorial`.
-- أضف لقطات شاشة/ملف `social preview` لجذب الزوار.
+Configure the SQL Server connection, a strong JWT signing key, and the web portal's API base URL for your environment. The API Swagger UI is available at `/swagger` on the API host.
 
----
+### Related project
 
-## License
-MIT — انظر ملف `LICENSE`.
+The mobile client is maintained separately: [AbuD Banky Flutter Mobile App](https://github.com/AbuD2023/AbuD_Banky-OnlineBankingAndWallet--Flutter_Dart_Mobile_Phone). It requires a reachable, compatible `Banky.API` instance.
 
----
+### GitHub discovery
 
-## Contact / Demo
-أضف هنا رابط العرض التجريبي أو تعليمات تشغيل البيانات التجريبية إذا رغبت في عرض نسخة تشغيل مبسطة.
+Suggested repository description: **ASP.NET Core .NET 8 banking platform with a REST API, SQL Server, and admin portal for wallets, transfers, POS, KYC, and transactions.**
 
+Suggested topics: `aspnet-core`, `dotnet`, `dotnet8`, `csharp`, `web-api`, `sql-server`, `digital-wallet`, `banking`, `fintech`, `point-of-sale`.
 
----
+### Security notice
 
-# English section (short)
-
-## What is AbuD-Banky?
-Sample banking and wallet application built with `ASP.NET Core Razor Pages` and `.NET 8`. Demonstrates front-end Razor Pages with a separate API service.
-
-## Quick Start (short)
-- Clone repository
-- `dotnet run --project Banky.API` (if API exists)
-- `dotnet run --project Banky.Web`
-- Adjust `Banky.Web/appsettings.json` -> `ApiSettings:BaseUrl` if needed.
-
-## Topics to add on GitHub
-`dotnet`, `dotnet8`, `aspnet-core`, `razor-pages`, `csharp`, `webapi`, `fintech`, `banking`, `wallet`, `tutorial`
+This is an educational/sample project, not a certified production banking system. Do not process real funds or real customer data without a thorough security, privacy, and operational review.
 
 
 
