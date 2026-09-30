@@ -21,7 +21,7 @@ namespace Banky.Web.Services
             _httpClient = httpClient;
             _httpContextAccessor = httpContextAccessor;
 
-            var baseUrl = configuration["ApiSettings:BaseUrl"] ?? "http://10.0.114.6:5021";
+            var baseUrl = configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5021";
             _httpClient.BaseAddress = new Uri(baseUrl);
 
             _jsonOptions = new JsonSerializerOptions

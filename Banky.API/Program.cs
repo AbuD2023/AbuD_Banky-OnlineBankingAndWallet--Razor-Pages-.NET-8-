@@ -89,7 +89,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Banky Mini Banking API",
+        Title = "Abud2023-Banky API",
         Version = "v1",
         Description = "واجهة برمجة التطبيقات للنظام البنكي والمحفظة الإلكترونية المتكاملة (توثيق KYC، تحويلات، نقاط بيع، وعملات متعددة)"
     });
@@ -143,7 +143,7 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Banky API v1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Abud2023-Banky API v1");
     c.RoutePrefix = "swagger";
 });
 
